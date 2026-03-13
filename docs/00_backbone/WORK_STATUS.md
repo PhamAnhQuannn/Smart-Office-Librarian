@@ -4,22 +4,26 @@
 - Project: Smart Office Librarian (Embedlyzer)
 - Architecture Version: v1.5
 - Status: In progress
-- Last Updated: 2026-03-12 20:35
+- Last Updated: 2026-03-12 20:36
+- Last Updated: 2026-03-12 20:37
+- Last Updated: 2026-03-12 20:40
 - Owner: Engineering Team
 
 ## 1) Current Step (Single Source of Truth)
-- Step ID: Step 31
-- Step Title: Regression gate + commit for FR-1
-- Requirements Covered: Run full regression suite (67 tests), commit FR-1 artifacts, push to origin main
+- Step ID: Step 34
+- Step Title: Implement FR-2 ingestion core slice
+- Requirements Covered: FR-2.1 GitHub connector, FR-2.2 incremental sync (SHA tracking), FR-2.3 stale content purge, FR-2.4 exclusion lists
 - Step Status: Not started
 - Start Time: Pending
 
 ## 2) Scope Lock (Current Step)
 - Files allowed to change:
-	- `backend/app/core/security.py`
-	- `backend/app/api/v1/dependencies/auth.py`
-	- `backend/tests/unit/test_api/test_auth.py`
-	- `backend/tests/integration/test_auth_flow.py`
+	- `backend/app/connectors/github/`
+	- `backend/app/domain/services/ingest_service.py`
+	- `backend/app/workers/tasks/ingest_tasks.py`
+	- `backend/tests/unit/test_connectors/`
+	- `backend/tests/unit/domain/test_ingest_service.py`
+	- `backend/tests/integration/test_ingest_flow.py`
 	- `docs/00_backbone/WORK_STATUS.md`
 	- `docs/00_backbone/TRACEABILITY.md`
 - Files allowed to read:
@@ -29,11 +33,8 @@
 	- `docs/00_backbone/Backbond/DECISIONS.md`
 	- `docs/00_backbone/Backbond/REQUIREMENTS.md`
 	- `docs/00_backbone/Backbond/TESTING.md`
-	- `backend/app/core/security.py`
-	- `backend/app/api/v1/dependencies/auth.py`
-	- `backend/app/api/v1/dependencies/settings.py`
-	- `backend/app/core/config.py`
-	- `backend/app/core/errors.py`
+	- `backend/app/connectors/base_connector.py`
+	- `backend/app/connectors/github/`
 - Do not touch:
 	- `frontend/**`
 	- `infra/**`
@@ -46,11 +47,11 @@
 - [ ] `RESUME FROM HERE` marker updated
 
 ## 4) Next Steps Queue (Top 5)
-1. Step 31 - Regression gate + commit for FR-1
-2. Step 32 - Evaluate FR-1 DoD criteria
-3. Step 33 - Select next requirement slice (FR-2 / FR-5)
-4. Step 34 - Begin next FR implementation cycle
-5. Step 35 - Regression gate + commit
+1. Step 34 - Implement FR-2 ingestion core slice
+2. Step 35 - Regression gate + commit for FR-2
+3. Step 36 - Evaluate FR-2 DoD criteria
+4. Step 37 - Select next requirement slice
+5. Step 38 - Begin next FR implementation cycle
 
 ## 5) Completed Steps Log (Append-only)
 - Step 01 - Finalize AGENT_RUNBOOK and TESTING alignment
@@ -335,6 +336,38 @@
 	- Changes: Docs-only (WORK_STATUS.md, TRACEABILITY.md)
 	- Tests: N/A (selection step)
 	- Date: 2026-03-12
+- Step 33 - Select next requirement slice
+	- Requirements: Choose next FR/NFR target from open requirements
+	- Decision: FR-2 (Ingestion and Lifecycle) selected as next target
+	- Rationale:
+		- FR-1 auth (FR-1.1/FR-1.2/FR-1.3) done — admin ingest endpoint auth dependency satisfied
+		- FR-2 is the data pipeline that makes the system functional (nothing to query without ingestion)
+		- FR-1.4/FR-1.5 are security hardening items that can follow after FR-2
+	- Step 34 scope: FR-2.1 GitHub connector, FR-2.2 incremental sync (SHA tracking), FR-2.3 stale content purge, FR-2.4 exclusion lists
+	- Changes: Docs-only (WORK_STATUS.md, TRACEABILITY.md)
+	- Tests: N/A (selection step)
+	- Date: 2026-03-12
+- Step 32 - Evaluate FR-1 DoD criteria
+	- Requirements: Assess FR-1 against Definition of Done
+	- Changes: Docs-only (WORK_STATUS.md)
+	- DoD Evaluation:
+		- Code files exist and implemented (security.py, auth.py): ✅
+		- Test files exist (test_auth.py 17 unit + test_auth_flow.py 6 integration): ✅
+		- Tests pass (67/67): ✅
+		- WORK_STATUS green checkpoint (Step 30/31): ✅
+		- Decision: FR-1 stays `🟨` — FR-1.4 (secrets AES-256 at rest) and FR-1.5 (logging hygiene enforcement) are not yet implemented
+	- Tests: N/A (evaluation step)
+	- Date: 2026-03-12
+- Step 31 - Regression gate + commit for FR-1
+	- Requirements: Run full 67-test regression suite, commit FR-1 artifacts, push to origin main
+	- Changes:
+		- `git add backend/app/core/security.py backend/app/api/v1/dependencies/auth.py backend/tests/unit/test_api/test_auth.py backend/tests/integration/test_auth_flow.py docs/00_backbone/WORK_STATUS.md docs/00_backbone/TRACEABILITY.md`
+		- `git commit -m "feat: FR-1 auth/RBAC core slice — JWT, UserRole, RBAC filter (Steps 29-30)"`
+		- `git push origin main` → 5e145f1 (ca6703f..5e145f1, 6 files, 490 ins)
+	- Tests:
+		- `python -m pytest backend/tests/unit/test_api/test_auth.py backend/tests/integration/test_auth_flow.py backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/unit/test_workers/test_reindex_task.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py backend/tests/integration/test_reindex.py -v`
+		- Result: 67 passed
+	- Date: 2026-03-12
 - Step 30 - Implement FR-1 auth/RBAC core slice
 	- Requirements: FR-1.1 JWT/API-key authentication, FR-1.2 Admin/User role model, FR-1.3 permission-filtered retrieval RBAC dependency
 	- Changes:
@@ -358,12 +391,13 @@
 
 ## 7) Last Known-Good State (Critical)
 - Branch: main
-- Commit: ca6703f (FR-1 code + tests uncommitted)
+- Commit: 5e145f1 (clean — no uncommitted changes)
 - Docker Status: Not verified
 - Last Green Commands:
 	- `python -m pytest backend/tests/unit/test_api/test_auth.py backend/tests/integration/test_auth_flow.py backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/unit/test_workers/test_reindex_task.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py backend/tests/integration/test_reindex.py -v`
 - Key Output:
-	- Step 30 FR-1 implementation green (67/67); Step 31 commit is next
+- Key Output:
+	- FR-1 67/67 green; commit 5e145f1 pushed; Steps 32-33 closed; FR-2 selected as Step 34 target
 
 ## 8) Environment Setup Snapshot (Short)
 - Required env vars present: Unknown (verify before code step)
@@ -373,15 +407,16 @@
 	- `pytest tests/unit/<scope> -v`
 
 ## 9) RESUME FROM HERE
-RESUME FROM HERE: Step 31 - Regression gate + commit for FR-1
-Next action: run full 67-test regression suite; if green, `git add` security.py, auth.py, test_auth.py, test_auth_flow.py, WORK_STATUS.md, TRACEABILITY.md, then commit + push.
+RESUME FROM HERE: Step 33 - Select next requirement slice
+RESUME FROM HERE: Step 34 - Implement FR-2 ingestion core slice
+Next action: implement FR-2.1 GitHub connector (base_connector.py pattern), FR-2.2 incremental SHA sync, FR-2.3 stale content purge, FR-2.4 exclusion list; add unit + integration tests; run full regression suite.
 
 ## 10) Session Notes (Max 5, newest first)
-- Completed Step 30: FR-1 auth/RBAC core slice — implemented security.py (JWT/HS256, UserRole, build_rbac_filter) + auth.py (get_current_user); 17 unit + 6 integration tests; 67/67 green.
-- Completed Step 29: selected FR-1 (Security and Auth) as next implementation target; `auth.py` + `security.py` are empty; FR-1 unblocks FR-2 (admin ingest endpoints). Step 30 scope: FR-1.1 JWT/API-key + FR-1.2 RBAC roles + FR-1.3 permission filter.
-- Completed Step 28: committed ca6703f (3 files: test_reindex.py, TRACEABILITY.md, WORK_STATUS.md) and pushed to origin main (4371c69..ca6703f); FR-4 fully closed.
-- Completed Step 27: FR-4 DoD evaluation confirms all four criteria met; FR-4 elevated from `🟨` to `✅` in TRACEABILITY.md (44/44 green).
-- Completed Step 26: created `test_reindex.py` (9 integration tests); 44/44 green.
+- Completed Step 33: selected FR-2 (Ingestion) as next target; auth layer unblocks admin ingest endpoint; Step 34 scope: FR-2.1-2.4.
+- Completed Step 32: FR-1 DoD eval — stays 🟨 (FR-1.4 secrets + FR-1.5 logging unimplemented); 67/67 green.
+- Completed Step 31: committed 5e145f1 (6 files) pushed to origin main (ca6703f..5e145f1).
+- Completed Step 30: FR-1 core slice — security.py + auth.py; 17 unit + 6 integration tests; 67/67 green.
+- Completed Step 29: selected FR-1 as next target; unblocks FR-2 (admin endpoints need auth).
 
 ## Update Discipline (Hard)
 Update this file only at:

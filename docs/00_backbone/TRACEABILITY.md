@@ -5,6 +5,7 @@
 - Architecture Version: v1.5
 - Status: Active
 - Last Updated: 2026-03-12 20:35
+- Last Updated: 2026-03-12 20:40
 - Rule: `✅` means code exists, tests exist, tests pass, and WORK_STATUS has a green checkpoint.
 
 ## 1) Purpose Statement
@@ -118,7 +119,7 @@ For future scope items:
 | ID | Title | Status | Implementation | Tests | Owner/Step |
 |---|---|---|---|---|---|
 | FR-1 | Security and Auth | 🟨 | backend/app/core/security.py; backend/app/api/v1/dependencies/auth.py | backend/tests/unit/test_api/test_auth.py; backend/tests/integration/test_auth_flow.py (2026-03-12: Step 30 implemented FR-1.1 HS256 JWT decode/verify, FR-1.2 UserRole Admin/User + AuthenticatedUser, FR-1.3 build_rbac_filter canonical RBAC filter (DECISIONS §5.1). 17 unit + 6 integration tests added; 67/67 green. Remaining: FR-1.4 secrets AES-256 at rest, FR-1.5 logging hygiene enforcement.) | Step 30 |
-| FR-2 | Ingestion and Lifecycle | ⬜ | TBD | TBD | Step 02 |
+| FR-2 | Ingestion and Lifecycle | 🟨 | backend/app/connectors/github/; backend/app/domain/services/ingest_service.py; backend/app/workers/tasks/ingest_tasks.py | backend/tests/unit/test_connectors/; backend/tests/unit/domain/test_ingest_service.py; backend/tests/integration/test_ingest_flow.py (2026-03-12: Step 33 selected FR-2 as next target; FR-1 auth unblocks admin ingest endpoint. Step 34 scope: FR-2.1 GitHub connector, FR-2.2 incremental SHA sync, FR-2.3 stale content purge, FR-2.4 exclusion lists.) | Step 34 |
 | FR-3 | RAG Pipeline | ✅ | backend/app/domain/services/query_service.py; backend/app/rag/stages/refusal_stage.py; backend/app/rag/pipeline.py | backend/tests/unit/domain/test_query_service.py; backend/tests/unit/rag/test_refusal_stage.py; backend/tests/integration/test_query_flow.py; backend/tests/integration/test_api.py; backend/tests/integration/test_rag_pipeline.py (2026-03-12: Step 22 regression gate confirmed 25/25 green; all four DoD criteria satisfied — code files exist, test files exist, tests pass, WORK_STATUS green checkpoint present. FR-3 elevated from 🟨 to ✅.) | Step 22 |
 | FR-4 | Index Maintenance and Versioning | ✅ | backend/app/domain/services/index_safety_service.py; backend/app/domain/services/query_service.py; backend/app/workers/tasks/reindex_tasks.py | backend/tests/unit/domain/test_index_safety_service.py; backend/tests/unit/domain/test_query_service.py; backend/tests/unit/test_workers/test_reindex_task.py; backend/tests/integration/test_reindex.py (2026-03-12: Step 27 DoD evaluation confirmed all four criteria met — code files exist (index_safety_service.py, query_service.py, reindex_tasks.py), test files exist (3 unit + 1 integration), tests pass (44/44 green), WORK_STATUS green checkpoint present (Step 26). FR-4 elevated from 🟨 to ✅.) | Step 27 |
 | FR-5 | Ops and Observability | ⬜ | TBD | TBD | Step 02 |
