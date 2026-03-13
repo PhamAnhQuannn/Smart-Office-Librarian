@@ -7,7 +7,7 @@ This service raises canonical mismatch errors that can be mapped to HTTP 409.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Mapping
 
 
 @dataclass(frozen=True)
@@ -47,6 +47,35 @@ class IndexSafetyMismatchError(Exception):
 
 class IndexSafetyService:
 	"""Validates query model/index compatibility against active index metadata."""
+
+	def build_vector_metadata(
+		self,
+		*,
+		model_id: str,
+		index_version: int,
+		base_metadata: Mapping[str, Any] | None = None,
+	) -> dict[str, Any]:
+		"""Builds canonical vector metadata with required version tags.
+
+		FR-4.1 requires every stored vector to include `model_id` and
+		`index_version` so query-time compatibility checks are deterministic.
+		"""
+		if not model_id:
+			raise ValueError("model_id is required")
+		if index_version is None or index_version < 1:
+			raise ValueError("index_version must be >= 1")
+
+		metadata = dict(base_metadata or {})
+		metadata["model_id"] = model_id
+		metadata["index_version"] = index_version
+		return metadata
+
+	def ensure_vector_metadata_tags(self, metadata: Mapping[str, Any]) -> None:
+		"""Validates required FR-4.1 metadata tags before vector persistence."""
+		if metadata.get("model_id") in (None, ""):
+			raise ValueError("vector metadata missing model_id")
+		if metadata.get("index_version") is None:
+			raise ValueError("vector metadata missing index_version")
 
 	def ensure_compatible(
 		self,

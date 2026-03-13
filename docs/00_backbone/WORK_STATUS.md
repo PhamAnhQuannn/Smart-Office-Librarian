@@ -4,15 +4,15 @@
 - Project: Smart Office Librarian (Embedlyzer)
 - Architecture Version: v1.5
 - Status: In progress
-- Last Updated: 2026-03-13 02:28
+- Last Updated: 2026-03-12 20:06
 - Owner: Engineering Team
 
 ## 1) Current Step (Single Source of Truth)
-- Step ID: Step 16
-- Step Title: Commit/push next slice
-- Requirements Covered: Commit and push FR-3 API integration + FR-4.2 stability updates
+- Step ID: Step 25
+- Step Title: Commit/push post-Step17 artifacts
+- Requirements Covered: Commit and push all staged changes from Steps 17–24 to origin main
 - Step Status: In progress
-- Start Time: 2026-03-13 02:28
+- Start Time: 2026-03-12 20:08
 
 ## 2) Scope Lock (Current Step)
 - Files allowed to change:
@@ -20,17 +20,16 @@
 	- `docs/00_backbone/TRACEABILITY.md`
 - Files allowed to read:
 	- `docs/00_backbone/AGENT_RUNBOOK.md`
+	- `docs/00_backbone/WORK_STATUS.md`
 	- `docs/00_backbone/TRACEABILITY.md`
 	- `docs/00_backbone/Backbond/DECISIONS.md`
 	- `docs/00_backbone/Backbond/REQUIREMENTS.md`
 	- `docs/00_backbone/Backbond/TESTING.md`
-	- `backend/app/domain/services/index_safety_service.py`
-	- `backend/app/domain/services/query_service.py`
-	- `backend/tests/unit/domain/test_index_safety_service.py`
-	- `backend/tests/unit/domain/test_query_service.py`
 	- `backend/tests/integration/test_api.py`
-	- `backend/tests/integration/test_query_flow.py`
 	- `backend/tests/integration/test_rag_pipeline.py`
+	- `backend/tests/integration/test_query_flow.py`
+	- `backend/app/rag/pipeline.py`
+	- `backend/app/domain/services/query_service.py`
 - Do not touch:
 	- `frontend/**`
 	- `infra/**`
@@ -43,11 +42,11 @@
 - [ ] `RESUME FROM HERE` marker updated
 
 ## 4) Next Steps Queue (Top 5)
-1. Step 16 - Commit/push next slice
-2. Step 17 - Resume FR-4.1/FR-4.3 breadth work
-3. Step 18 - Execute FR-3 RAG pipeline integration slice
-4. Step 19 - Evaluate FR-3 status elevation criteria
-5. Step 20 - Start next scoped implementation cycle
+1. Step 25 - Commit/push post-Step17 artifacts
+2. Step 26 - Start FR-4 integration reindex suite
+3. Step 27 - Evaluate FR-4 DoD elevation criteria
+4. Step 28 - Select next requirement slice
+5. Step 29 - Begin next FR/NFR implementation cycle
 
 ## 5) Completed Steps Log (Append-only)
 - Step 01 - Finalize AGENT_RUNBOOK and TESTING alignment
@@ -184,6 +183,103 @@
 		- `python -m pytest backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py -v`
 		- Result: 19 passed
 	- Date: 2026-03-12
+- Step 16 - Commit/push next slice
+	- Requirements: Commit and push FR-3 API integration + FR-4.2 stability updates
+	- Commit: 2b0f79e
+	- Tests:
+		- `python -m pytest backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py -v`
+		- Result: 19 passed
+	- Push:
+		- `git push origin main`
+		- Result: success (`4ba4006..2b0f79e`)
+	- Date: 2026-03-13
+- Step 17 - Resume FR-4.1/FR-4.3 breadth work
+	- Requirements: FR-4.1 metadata tagging + FR-4.3 blue-green atomic swap foundation
+	- Commit: Working tree (not committed yet)
+	- Changes:
+		- Added FR-4.1 vector metadata tagging/validation helpers in `backend/app/domain/services/index_safety_service.py`
+		- Implemented FR-4.3 reindex pointer swap service in `backend/app/workers/tasks/reindex_tasks.py`
+		- Added/updated unit tests in `backend/tests/unit/domain/test_index_safety_service.py` and `backend/tests/unit/test_workers/test_reindex_task.py`
+	- Tests:
+		- `python -m pytest backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/test_workers/test_reindex_task.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py -v`
+		- Result: 26 passed
+	- Date: 2026-03-12
+- Step 18 - Execute FR-3 RAG pipeline integration slice
+	- Requirements: FR-3 integration tests for threshold injection, refusal flow, retrieval-only flow
+	- Commit: Working tree (not committed yet)
+	- Changes:
+		- Implemented `backend/app/rag/pipeline.py` orchestration for retrieval/refusal/generation and retrieval-only short-circuit
+		- Added `backend/tests/integration/test_rag_pipeline.py` integration coverage for threshold injection, refusal, and retrieval-only behavior
+	- Tests:
+		- `python -m pytest backend/tests/integration/test_rag_pipeline.py backend/tests/integration/test_query_flow.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_api.py -v`
+		- Result: 19 passed
+	- Date: 2026-03-12
+- Step 19 - Evaluate FR-3 status elevation criteria
+	- Requirements: FR-3 Definition of Done evaluation after Step 18 integration coverage
+	- Decision:
+		- FR-3 remains `🟨` (partial)
+		- Rationale: mapped FR-3 suite is green, but broader API/RAG integration assertions in `TESTING.md` 11.1/11.2 remain incomplete
+	- Tests:
+		- `python -m pytest backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py -v`
+		- Result: 19 passed
+	- Date: 2026-03-12
+- Step 20 - Start next scoped implementation cycle
+	- Requirements: Select and scope the next implementation target after Step 19 FR-3 status evaluation
+	- Decision:
+		- Next slice remains FR-3 and targets unimplemented TESTING 11.1/11.2 assertions
+		- Step 21 scope set to API/RAG integration assertion closure (`test_api.py`, `test_rag_pipeline.py`, `test_query_flow.py`) with service/route wiring as needed
+	- Tests:
+		- `python -m pytest backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py -v`
+		- Result: 19 passed
+	- Date: 2026-03-12
+- Step 21 - Implement remaining FR-3 API/RAG integration assertions
+	- Requirements: Close remaining FR-3 assertions from TESTING 11.1 (API integration) and 11.2 (RAG pipeline integration)
+	- Changes:
+		- Expanded `backend/tests/integration/test_api.py` with boundary JSON error contract assertions (401/429), required SSE headers, multiline/comment SSE parsing, empty-answer confidence guard, and exact token concatenation checks
+		- Extended `backend/tests/integration/test_rag_pipeline.py` with retrieval-only RBAC propagation assertion and cache hit-vs-miss latency assertions
+		- Updated `backend/app/rag/pipeline.py` to pass through retrieval cache metadata (`retrieval_cache_hit`, `retrieval_latency_ms`) for integration-level validation
+	- Tests:
+		- `python -m pytest backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py -v`
+		- Result: 25 passed
+	- Date: 2026-03-12
+- Step 22 - Run FR-3 integration regression gate
+	- Requirements: Validate Step 21 FR-3 API/RAG integration assertions with regression-level verification; evaluate FR-3 DoD elevation
+	- Changes: Docs-only (WORK_STATUS.md, TRACEABILITY.md)
+	- DoD Evaluation:
+		- Code files exist and implemented: ✅
+		- Test files exist: ✅
+		- Tests pass (25/25): ✅
+		- WORK_STATUS green checkpoint (Step 21): ✅
+		- Decision: FR-3 elevated from `🟨` to `✅`
+	- Tests:
+		- `python -m pytest backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py -v`
+		- Result: 25 passed
+	- Date: 2026-03-12
+- Step 23 - Update checkpoint package and docs sync
+	- Requirements: Sync documentation after FR-3 elevation
+	- Changes: Docs-only (WORK_STATUS.md, TRACEABILITY.md)
+	- Actions:
+		- Fixed stale FR-4 `Owner/Step` reference from Step 19 to Step 26 in TRACEABILITY.md
+		- No code changes; all backbone docs confirmed consistent with FR-3 `✅` state
+	- Tests: N/A (docs-only step)
+	- Date: 2026-03-12
+- Step 24 - Stage next commit slice
+	- Requirements: Stage all uncommitted working tree changes (Steps 17–23) for commit
+	- Changes: Git index only (no file edits)
+	- Staged files (9):
+		- backend/app/domain/services/index_safety_service.py (modified)
+		- backend/app/rag/pipeline.py (modified)
+		- backend/app/workers/tasks/reindex_tasks.py (modified)
+		- backend/tests/integration/test_api.py (modified)
+		- backend/tests/integration/test_rag_pipeline.py (new file)
+		- backend/tests/unit/domain/test_index_safety_service.py (modified)
+		- backend/tests/unit/test_workers/test_reindex_task.py (new file)
+		- docs/00_backbone/TRACEABILITY.md (modified)
+		- docs/00_backbone/WORK_STATUS.md (modified)
+	- Tests:
+		- `python -m pytest backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py -v`
+		- Result: 25 passed
+	- Date: 2026-03-12
 
 ## 6) Known Issues / Blockers
 - No active blockers.
@@ -196,12 +292,12 @@
 
 ## 7) Last Known-Good State (Critical)
 - Branch: main
-- Commit: 4ba4006
+- Commit: 2b0f79e (9 files staged, ready to commit)
 - Docker Status: Not verified
 - Last Green Commands:
-	- `python -m pytest backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py -v`
+	- `python -m pytest backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py -v`
 - Key Output:
-	- Step 15 step-level regression suite is green (19/19) across touched FR-3 and FR-4 slices
+	- Step 24 staging complete (9 files staged); 25/25 green; Step 25 commit/push is next
 
 ## 8) Environment Setup Snapshot (Short)
 - Required env vars present: Unknown (verify before code step)
@@ -211,17 +307,15 @@
 	- `pytest tests/unit/<scope> -v`
 
 ## 9) RESUME FROM HERE
-RESUME FROM HERE: Step 16 - Commit/push next slice
-Next action: stage touched FR-3/FR-4 files, create a commit for Step 11-15 artifacts, and push to `main`.
-Keep FR-3 as partial until remaining API/RAG integration suites are implemented.
+RESUME FROM HERE: Step 25 - Commit/push post-Step17 artifacts
+Next action: run `git commit -m "<message>"` with a concise message covering Steps 17–24 changes, then `git push origin main`.
 
 ## 10) Session Notes (Max 5, newest first)
-- Completed Step 15: ran step-level regression suite with 19/19 tests green.
-- Completed Step 14: executed FR-3 API integration contract slice with 19/19 tests green.
-- Completed Step 13: planned FR-3 API/RAG integration backlog into executable Step 14/18 slices (15/15 tests green).
-- Completed Step 12: roadmap reconciled after FR-4.2 with FR-3 integration closure prioritized (15/15 tests green).
-- Completed Step 11: implemented FR-4.2 mismatch contract and unit coverage (15/15 tests green).
-- Created TRACEABILITY baseline map with FR/NFR grouping and strict DoD rules.
+- Completed Step 24: staged 9 files (Steps 17–23 working tree); pre-commit gate green (25/25); ready for Step 25 commit/push.
+- Completed Step 23: docs sync complete; fixed stale FR-4 Owner/Step (Step 19 → Step 26) in TRACEABILITY.md; all backbone docs consistent with FR-3 `✅`.
+- Completed Step 22: FR-3 regression gate passed (25/25); DoD evaluation confirms all four criteria met; FR-3 elevated from `🟨` to `✅` in TRACEABILITY.md.
+- Completed Step 21: implemented FR-3 API/RAG assertion updates (SSE boundary/headers/framing checks + RBAC/cache assertions) with full FR-3 suite green (25/25).
+- Completed Step 20: scoped next FR-3 integration cycle to remaining TESTING 11.1/11.2 assertions; verification gate stayed green (19/19).
 
 ## Update Discipline (Hard)
 Update this file only at:
