@@ -4,7 +4,7 @@
 - Project: Smart Office Librarian (Embedlyzer)
 - Architecture Version: v1.5
 - Status: Active
-- Last Updated: 2026-03-12 20:03
+- Last Updated: 2026-03-12 20:21
 - Rule: `✅` means code exists, tests exist, tests pass, and WORK_STATUS has a green checkpoint.
 
 ## 1) Purpose Statement
@@ -120,7 +120,7 @@ For future scope items:
 | FR-1 | Security and Auth | ⬜ | TBD | TBD | Step 02 |
 | FR-2 | Ingestion and Lifecycle | ⬜ | TBD | TBD | Step 02 |
 | FR-3 | RAG Pipeline | ✅ | backend/app/domain/services/query_service.py; backend/app/rag/stages/refusal_stage.py; backend/app/rag/pipeline.py | backend/tests/unit/domain/test_query_service.py; backend/tests/unit/rag/test_refusal_stage.py; backend/tests/integration/test_query_flow.py; backend/tests/integration/test_api.py; backend/tests/integration/test_rag_pipeline.py (2026-03-12: Step 22 regression gate confirmed 25/25 green; all four DoD criteria satisfied — code files exist, test files exist, tests pass, WORK_STATUS green checkpoint present. FR-3 elevated from 🟨 to ✅.) | Step 22 |
-| FR-4 | Index Maintenance and Versioning | 🟨 | backend/app/domain/services/index_safety_service.py; backend/app/domain/services/query_service.py; backend/app/workers/tasks/reindex_tasks.py | backend/tests/unit/domain/test_index_safety_service.py; backend/tests/unit/domain/test_query_service.py; backend/tests/unit/test_workers/test_reindex_task.py (2026-03-12: Step 17 added FR-4.1 metadata tagging + FR-4.3 atomic swap foundation; integration reindex suite still pending) | Step 26 |
+| FR-4 | Index Maintenance and Versioning | ✅ | backend/app/domain/services/index_safety_service.py; backend/app/domain/services/query_service.py; backend/app/workers/tasks/reindex_tasks.py | backend/tests/unit/domain/test_index_safety_service.py; backend/tests/unit/domain/test_query_service.py; backend/tests/unit/test_workers/test_reindex_task.py; backend/tests/integration/test_reindex.py (2026-03-12: Step 27 DoD evaluation confirmed all four criteria met — code files exist (index_safety_service.py, query_service.py, reindex_tasks.py), test files exist (3 unit + 1 integration), tests pass (44/44 green), WORK_STATUS green checkpoint present (Step 26). FR-4 elevated from 🟨 to ✅.) | Step 27 |
 | FR-5 | Ops and Observability | ⬜ | TBD | TBD | Step 02 |
 | FR-6 | Frontend | ⬜ | TBD | TBD | Step 02 |
 | FR-7 [v2] | Multi-tenancy | ⬜ | TBD | TBD | Step 02 |

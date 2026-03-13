@@ -4,20 +4,21 @@
 - Project: Smart Office Librarian (Embedlyzer)
 - Architecture Version: v1.5
 - Status: In progress
-- Last Updated: 2026-03-12 20:06
+- Last Updated: 2026-03-12 20:21
 - Owner: Engineering Team
 
 ## 1) Current Step (Single Source of Truth)
-- Step ID: Step 25
-- Step Title: Commit/push post-Step17 artifacts
-- Requirements Covered: Commit and push all staged changes from Steps 17–24 to origin main
-- Step Status: In progress
-- Start Time: 2026-03-12 20:08
+- Step ID: Step 28
+- Step Title: Stage + commit FR-4 integration artifacts
+- Requirements Covered: Stage and push test_reindex.py + updated TRACEABILITY/WORK_STATUS to origin main
+- Step Status: Not started
+- Start Time: Pending
 
 ## 2) Scope Lock (Current Step)
 - Files allowed to change:
 	- `docs/00_backbone/WORK_STATUS.md`
 	- `docs/00_backbone/TRACEABILITY.md`
+	- `backend/tests/integration/test_reindex.py`
 - Files allowed to read:
 	- `docs/00_backbone/AGENT_RUNBOOK.md`
 	- `docs/00_backbone/WORK_STATUS.md`
@@ -25,11 +26,10 @@
 	- `docs/00_backbone/Backbond/DECISIONS.md`
 	- `docs/00_backbone/Backbond/REQUIREMENTS.md`
 	- `docs/00_backbone/Backbond/TESTING.md`
-	- `backend/tests/integration/test_api.py`
-	- `backend/tests/integration/test_rag_pipeline.py`
-	- `backend/tests/integration/test_query_flow.py`
-	- `backend/app/rag/pipeline.py`
-	- `backend/app/domain/services/query_service.py`
+	- `backend/app/domain/services/index_safety_service.py`
+	- `backend/app/workers/tasks/reindex_tasks.py`
+	- `backend/tests/unit/domain/test_index_safety_service.py`
+	- `backend/tests/unit/test_workers/test_reindex_task.py`
 - Do not touch:
 	- `frontend/**`
 	- `infra/**`
@@ -42,11 +42,11 @@
 - [ ] `RESUME FROM HERE` marker updated
 
 ## 4) Next Steps Queue (Top 5)
-1. Step 25 - Commit/push post-Step17 artifacts
-2. Step 26 - Start FR-4 integration reindex suite
-3. Step 27 - Evaluate FR-4 DoD elevation criteria
-4. Step 28 - Select next requirement slice
-5. Step 29 - Begin next FR/NFR implementation cycle
+1. Step 28 - Stage + commit FR-4 integration artifacts
+2. Step 29 - Select next requirement slice
+3. Step 30 - Begin next FR/NFR implementation cycle
+4. Step 31 - Regression gate + commit
+5. Step 32 - Evaluate next requirement DoD criteria
 
 ## 5) Completed Steps Log (Append-only)
 - Step 01 - Finalize AGENT_RUNBOOK and TESTING alignment
@@ -280,6 +280,39 @@
 		- `python -m pytest backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py -v`
 		- Result: 25 passed
 	- Date: 2026-03-12
+- Step 25 - Commit/push post-Step17 artifacts
+	- Requirements: Commit and push all staged changes from Steps 17–24 to origin main
+	- Commit: 4371c69
+	- Files committed (9): index_safety_service.py, pipeline.py, reindex_tasks.py, test_api.py, test_rag_pipeline.py (new), test_index_safety_service.py, test_reindex_task.py (new), TRACEABILITY.md, WORK_STATUS.md
+	- Tests:
+		- `python -m pytest backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py -v`
+		- Result: 25 passed
+	- Push:
+		- `git push origin main`
+		- Result: success (`2b0f79e..4371c69`)
+	- Date: 2026-03-12
+- Step 26 - Start FR-4 integration reindex suite
+	- Requirements: FR-4 integration test coverage for reindex atomic swap and index safety contracts
+	- Changes:
+		- Created `backend/tests/integration/test_reindex.py` with 9 integration tests
+		- Tests cover: safety-gated swap success, model mismatch block (EMBEDDING_MODEL_MISMATCH), version mismatch block (INDEX_VERSION_MISMATCH), validation failure block, atomic swap race condition (AtomicSwapError), metadata tagging round-trip, sequential swap chaining
+	- Tests:
+		- `python -m pytest backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/unit/test_workers/test_reindex_task.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py backend/tests/integration/test_reindex.py -v`
+		- Result: 44 passed
+	- Date: 2026-03-12
+- Step 27 - Evaluate FR-4 DoD elevation criteria
+	- Requirements: Assess FR-4 against Definition of Done
+	- Changes: Docs-only (WORK_STATUS.md, TRACEABILITY.md)
+	- DoD Evaluation:
+		- Code files exist and implemented: ✅
+		- Test files exist (3 unit + 1 integration): ✅
+		- Tests pass (44/44): ✅
+		- WORK_STATUS green checkpoint (Step 26): ✅
+		- Decision: FR-4 elevated from `🟨` to `✅`
+	- Tests:
+		- `python -m pytest backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/unit/test_workers/test_reindex_task.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py backend/tests/integration/test_reindex.py -v`
+		- Result: 44 passed
+	- Date: 2026-03-12
 
 ## 6) Known Issues / Blockers
 - No active blockers.
@@ -292,12 +325,12 @@
 
 ## 7) Last Known-Good State (Critical)
 - Branch: main
-- Commit: 2b0f79e (9 files staged, ready to commit)
+- Commit: 4371c69 (test_reindex.py + docs changes uncommitted)
 - Docker Status: Not verified
 - Last Green Commands:
-	- `python -m pytest backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py -v`
+	- `python -m pytest backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/unit/test_workers/test_reindex_task.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py backend/tests/integration/test_reindex.py -v`
 - Key Output:
-	- Step 24 staging complete (9 files staged); 25/25 green; Step 25 commit/push is next
+	- Step 27 FR-4 DoD evaluation complete (44/44); FR-4 elevated to `✅`; Step 28 commit is next
 
 ## 8) Environment Setup Snapshot (Short)
 - Required env vars present: Unknown (verify before code step)
@@ -307,15 +340,15 @@
 	- `pytest tests/unit/<scope> -v`
 
 ## 9) RESUME FROM HERE
-RESUME FROM HERE: Step 25 - Commit/push post-Step17 artifacts
-Next action: run `git commit -m "<message>"` with a concise message covering Steps 17–24 changes, then `git push origin main`.
+RESUME FROM HERE: Step 28 - Stage + commit FR-4 integration artifacts
+Next action: `git add` test_reindex.py + TRACEABILITY.md + WORK_STATUS.md, then `git commit` and `git push origin main`.
 
 ## 10) Session Notes (Max 5, newest first)
+- Completed Step 27: FR-4 DoD evaluation confirms all four criteria met; FR-4 elevated from `🟨` to `✅` in TRACEABILITY.md (44/44 green).
+- Completed Step 26: created `test_reindex.py` (9 integration tests covering safety-gated swap, model/version mismatch, validation failure, CAS race, metadata round-trip, sequential swaps); 44/44 green.
+- Completed Step 25: committed 4371c69 (9 files, 839 ins) and pushed to origin main (2b0f79e..4371c69); working tree is clean.
 - Completed Step 24: staged 9 files (Steps 17–23 working tree); pre-commit gate green (25/25); ready for Step 25 commit/push.
 - Completed Step 23: docs sync complete; fixed stale FR-4 Owner/Step (Step 19 → Step 26) in TRACEABILITY.md; all backbone docs consistent with FR-3 `✅`.
-- Completed Step 22: FR-3 regression gate passed (25/25); DoD evaluation confirms all four criteria met; FR-3 elevated from `🟨` to `✅` in TRACEABILITY.md.
-- Completed Step 21: implemented FR-3 API/RAG assertion updates (SSE boundary/headers/framing checks + RBAC/cache assertions) with full FR-3 suite green (25/25).
-- Completed Step 20: scoped next FR-3 integration cycle to remaining TESTING 11.1/11.2 assertions; verification gate stayed green (19/19).
 
 ## Update Discipline (Hard)
 Update this file only at:
