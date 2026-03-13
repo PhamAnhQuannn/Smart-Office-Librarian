@@ -10,6 +10,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.domain.services.query_service import QueryRequest, QueryService
+from app.domain.services.index_safety_service import IndexSafetyMismatchError, IndexSafetyService
 
 
 class _FakeThresholdService:
@@ -29,6 +30,20 @@ class _FakePipeline:
     def run(self, **kwargs):
         self.last_kwargs = kwargs
         return {"mode": "ok", "threshold": kwargs["threshold"]}
+
+
+class _FakeIndexMetadataProvider:
+    def __init__(self, *, model_id: str, index_version: int) -> None:
+        self.model_id = model_id
+        self.index_version = index_version
+        self.calls: list[str] = []
+
+    def get_index_metadata(self, *, namespace: str):
+        self.calls.append(namespace)
+        return {
+            "model_id": self.model_id,
+            "index_version": self.index_version,
+        }
 
 
 def test_query_service_fetches_threshold_and_passes_to_pipeline() -> None:
@@ -90,3 +105,63 @@ def test_query_service_propagates_pipeline_errors() -> None:
 
     with pytest.raises(RuntimeError, match="pipeline boom"):
         service.execute(request)
+
+
+def test_query_service_validates_index_safety_when_services_provided() -> None:
+    threshold_service = _FakeThresholdService(value=0.65)
+    pipeline = _FakePipeline()
+    index_safety_service = IndexSafetyService()
+    metadata_provider = _FakeIndexMetadataProvider(
+        model_id="text-embedding-3-small-v1",
+        index_version=1,
+    )
+    service = QueryService(
+        pipeline=pipeline,
+        threshold_service=threshold_service,
+        index_safety_service=index_safety_service,
+        index_metadata_provider=metadata_provider,
+    )
+
+    service.execute(
+        QueryRequest(
+            query_text="safety check",
+            namespace="dev",
+            index_version=1,
+            model_id="text-embedding-3-small-v1",
+        )
+    )
+
+    assert metadata_provider.calls == ["dev"]
+    assert threshold_service.calls == [("dev", 1)]
+
+
+def test_query_service_raises_canonical_model_mismatch_error() -> None:
+    threshold_service = _FakeThresholdService(value=0.65)
+    pipeline = _FakePipeline()
+    service = QueryService(
+        pipeline=pipeline,
+        threshold_service=threshold_service,
+        index_safety_service=IndexSafetyService(),
+        index_metadata_provider=_FakeIndexMetadataProvider(
+            model_id="text-embedding-3-small-v1",
+            index_version=1,
+        ),
+    )
+
+    with pytest.raises(IndexSafetyMismatchError) as exc:
+        service.execute(
+            QueryRequest(
+                query_text="mismatch",
+                namespace="dev",
+                index_version=1,
+                model_id="text-embedding-3-large-v1",
+            )
+        )
+
+    payload = exc.value.to_error_payload()
+    assert exc.value.error_code == "EMBEDDING_MODEL_MISMATCH"
+    assert payload["error_code"] == "EMBEDDING_MODEL_MISMATCH"
+    assert payload["details"]["expected_model_id"] == "text-embedding-3-small-v1"
+    assert payload["details"]["received_model_id"] == "text-embedding-3-large-v1"
+    # Mismatch must short-circuit before threshold/pipeline execution.
+    assert threshold_service.calls == []

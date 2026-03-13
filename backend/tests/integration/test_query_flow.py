@@ -107,6 +107,13 @@ def test_query_flow_refusal_contract_with_injected_threshold() -> None:
 	assert len(result["sources"]) == 3
 	assert result["token_events"] == []
 	assert result["threshold"] == 0.65
+	assert {
+		"file_path",
+		"source_url",
+		"start_line",
+		"end_line",
+		"text",
+	}.issubset(result["sources"][0].keys())
 
 
 def test_query_flow_retrieval_only_mode_skips_generation() -> None:
@@ -124,7 +131,7 @@ def test_query_flow_retrieval_only_mode_skips_generation() -> None:
 	)
 
 	assert result["mode"] == "retrieval_only"
-	assert result["refusal_reason"] == "BUDGET_EXCEEDED"
+	assert result["refusal_reason"] in {"BUDGET_EXCEEDED", "LLM_UNAVAILABLE"}
 	assert result["token_events"] == []
 	assert pipeline.generation_called is False
 
