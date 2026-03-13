@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+
 import pytest
 
 from app.core.security import (
@@ -27,9 +29,14 @@ def test_secrets_encryption_output_is_tagged_and_not_plaintext() -> None:
 
 def test_secrets_encryption_detects_payload_tampering() -> None:
     encrypted = encrypt_secret_value("secret-to-protect", key_material="master-key")
-    tampered = encrypted[:-1] + ("A" if encrypted[-1] != "A" else "B")
+    encoded_payload = encrypted.split(":", maxsplit=1)[1]
+    padding = "=" * ((4 - len(encoded_payload) % 4) % 4)
+    blob = bytearray(base64.urlsafe_b64decode(encoded_payload + padding))
+    blob[len(blob) // 2] ^= 0x01
+    tampered_payload = base64.urlsafe_b64encode(bytes(blob)).decode().rstrip("=")
+    tampered = "enc-v1:" + tampered_payload
 
-    with pytest.raises(SecretEncryptionError, match="authentication failed|base64"):
+    with pytest.raises(SecretEncryptionError, match="authentication failed"):
         decrypt_secret_value(tampered, key_material="master-key")
 
 

@@ -17,6 +17,10 @@ from app.api.v1.routes.feedback_routes import FeedbackSubmission, submit_feedbac
 from app.api.v1.routes.metrics_routes import get_metrics_response
 from app.core.logging import InMemoryStructuredLogger, safe_error_message, sanitize_log_data
 from app.core.metrics import (
+	LIBRARIAN_ACTIVE_SSE_STREAMS,
+	LIBRARIAN_ERRORS_TOTAL,
+	LIBRARIAN_QUERIES_TOTAL,
+	LIBRARIAN_REFUSALS_TOTAL,
 	QUERY_REQUESTS_TOTAL,
 	RETRIEVAL_FAILURES_TOTAL,
 	InMemoryMetricsRegistry,
@@ -152,6 +156,7 @@ class EmbedlyzerApp:
 		try:
 			user = get_current_user(authorization or "", jwt_secret=jwt_secret)
 		except AuthenticationError as exc:
+			self.metrics.increment(LIBRARIAN_ERRORS_TOTAL, code="HTTP_4XX")
 			return _error_response(
 				status_code=401,
 				error_code=exc.error_code,
@@ -194,6 +199,7 @@ class EmbedlyzerApp:
 				else "rate_limited"
 			)
 			self.metrics.increment(QUERY_REQUESTS_TOTAL, result=result)
+			self.metrics.increment(LIBRARIAN_ERRORS_TOTAL, code="HTTP_4XX")
 			details = {}
 			if exc.retry_after_seconds is not None:
 				details["retry_after_seconds"] = exc.retry_after_seconds
@@ -205,12 +211,18 @@ class EmbedlyzerApp:
 				retry_after_seconds=exc.retry_after_seconds,
 			)
 
+		self.metrics.set_gauge(
+			LIBRARIAN_ACTIVE_SSE_STREAMS,
+			self.rate_limiter.active_streams(user.user_id),
+		)
 		self.metrics.increment(QUERY_REQUESTS_TOTAL, result="accepted")
+		self.metrics.increment(LIBRARIAN_QUERIES_TOTAL, mode=mode)
 		query_log_id = str(uuid.uuid4())
 		response_sources = (sources or [])[:3]
 
 		if refusal_reason is not None:
 			self.metrics.increment(RETRIEVAL_FAILURES_TOTAL, reason=refusal_reason)
+			self.metrics.increment(LIBRARIAN_REFUSALS_TOTAL, reason=refusal_reason)
 			self.logger.log_retrieval_failure(
 				user_id=user.user_id,
 				query_log_id=query_log_id,
@@ -237,6 +249,10 @@ class EmbedlyzerApp:
 
 		if auto_release:
 			lease.release()
+			self.metrics.set_gauge(
+				LIBRARIAN_ACTIVE_SSE_STREAMS,
+				self.rate_limiter.active_streams(user.user_id),
+			)
 		else:
 			response["lease"] = lease
 		return response

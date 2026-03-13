@@ -9,6 +9,7 @@ from typing import Any
 
 import pytest
 
+from app.core.metrics import LIBRARIAN_REFUSALS_TOTAL
 from app.main import EmbedlyzerApp, render_sse
 
 JWT_SECRET = "test-secret"
@@ -226,7 +227,7 @@ def test_api_refusal_stream_has_no_tokens_and_complete_has_low_similarity_source
     assert len(complete["sources"]) == 3
     assert not any(event["type"] == "token" for event in events)
 
-    assert app.metrics.get_counter("embedlyzer_retrieval_failures_total", reason="LOW_SIMILARITY") == 1
+    assert app.metrics.get_counter(LIBRARIAN_REFUSALS_TOTAL, reason="LOW_SIMILARITY") == 1
     retrieval_log = app.logger.entries[-1]
     assert retrieval_log.event_type == "query.retrieval_failure"
     assert retrieval_log.payload["request_metadata"]["authorization"] == "***REDACTED***"
@@ -321,3 +322,7 @@ def test_metrics_endpoint_exposes_query_and_retrieval_counters() -> None:
     assert metrics_response["headers"]["Content-Type"] == "text/plain; version=0.0.4; charset=utf-8"
     assert 'embedlyzer_query_requests_total{result="accepted"} 2' in metrics_response["body"]
     assert 'embedlyzer_retrieval_failures_total{reason="LOW_SIMILARITY"} 1' in metrics_response["body"]
+    assert 'librarian_queries_total{mode="answer"} 1' in metrics_response["body"]
+    assert 'librarian_queries_total{mode="refusal"} 1' in metrics_response["body"]
+    assert 'librarian_refusals_total{reason="LOW_SIMILARITY"} 1' in metrics_response["body"]
+    assert 'librarian_active_sse_streams 0.0' in metrics_response["body"]

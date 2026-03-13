@@ -4,7 +4,7 @@
 - Project: Smart Office Librarian (Embedlyzer)
 - Architecture Version: v1.5
 - Status: Active
-- Last Updated: 2026-03-13 01:20
+- Last Updated: 2026-03-13 13:37
 - Rule: `✅` means code exists, tests exist, tests pass, and WORK_STATUS has a green checkpoint.
 
 ## 1) Purpose Statement
@@ -133,7 +133,7 @@ For future scope items:
 | NFR-3 | Reliability | ⬜ | TBD | TBD | Step 02 |
 | NFR-4 | Security and Privacy | ⬜ | TBD | TBD | Step 02 |
 | NFR-5 | Maintainability | 🟨 | docs/00_backbone/Backbond/TESTING.md; docs/00_backbone/WORK_STATUS.md | docs/00_backbone/Backbond/TESTING.md (deterministic parity checks) | Step 03 |
-| NFR-6 | Observability | ⬜ | TBD | TBD | Step 02 |
+| NFR-6 | Observability | 🟨 | backend/app/core/metrics.py; backend/app/core/telemetry.py; backend/app/api/v1/routes/metrics_routes.py; backend/app/main.py (2026-03-13: Step 50 implemented canonical `librarian_*` metrics family support for counters/gauges/histograms, added telemetry stage/TTFT recording, and wired query-path metric emission including refusals/errors/active stream gauge.) | backend/tests/unit/test_api/test_metrics_routes.py; backend/tests/unit/test_core/test_telemetry.py; backend/tests/integration/test_api.py (Step 50 validation: `python -m pytest tests/unit -v` -> 84 passed; `python -m pytest tests/integration -v` -> 41 passed). Remaining for `✅`: broader alerting/tracing coverage and production-gate observability evidence from TESTING 8.x/11.x. | Step 50 |
 | NFR-7 | Cost Controls | ⬜ | TBD | TBD | Step 02 |
 
 ## What TRACEABILITY Is NOT
