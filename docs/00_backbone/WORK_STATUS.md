@@ -4,26 +4,30 @@
 - Project: Smart Office Librarian (Embedlyzer)
 - Architecture Version: v1.5
 - Status: In progress
-- Last Updated: 2026-03-12 20:53
+- Last Updated: 2026-03-12 22:09
 - Owner: Engineering Team
 
 ## 1) Current Step (Single Source of Truth)
-- Step ID: Step 35
-- Step Title: Regression gate + commit for FR-2
-- Requirements Covered: Commit FR-2 ingestion artifacts after green regression gate; push to origin main
+- Step ID: Step 39
+- Step Title: Regression gate + commit for FR-5
+- Requirements Covered: Verify FR-5 scoped and full regression, then stage/commit/push Step 38 artifacts
 - Step Status: In progress
-- Start Time: 2026-03-12 20:56
+- Start Time: 2026-03-12 22:09
 
 ## 2) Scope Lock (Current Step)
 - Files allowed to change:
-	- `backend/app/connectors/github/`
-	- `backend/app/domain/services/ingest_service.py`
-	- `backend/app/workers/tasks/ingest_tasks.py`
-	- `backend/tests/unit/test_connectors/`
-	- `backend/tests/unit/domain/test_ingest_service.py`
-	- `backend/tests/integration/test_ingest_flow.py`
 	- `docs/00_backbone/WORK_STATUS.md`
 	- `docs/00_backbone/TRACEABILITY.md`
+	- `backend/app/main.py`
+	- `backend/app/api/v1/dependencies/rate_limit.py`
+	- `backend/app/api/v1/routes/feedback_routes.py`
+	- `backend/app/api/v1/routes/metrics_routes.py`
+	- `backend/app/core/logging.py`
+	- `backend/app/core/metrics.py`
+	- `backend/tests/unit/test_api/test_rate_limit.py`
+	- `backend/tests/integration/test_api.py`
+	- `backend/tests/integration/test_feedback_flow.py`
+	- `.git/**` (commit metadata only)
 - Files allowed to read:
 	- `docs/00_backbone/AGENT_RUNBOOK.md`
 	- `docs/00_backbone/WORK_STATUS.md`
@@ -31,8 +35,21 @@
 	- `docs/00_backbone/Backbond/DECISIONS.md`
 	- `docs/00_backbone/Backbond/REQUIREMENTS.md`
 	- `docs/00_backbone/Backbond/TESTING.md`
-	- `backend/app/connectors/base_connector.py`
-	- `backend/app/connectors/github/`
+	- `backend/app/api/v1/dependencies/rate_limit.py`
+	- `backend/app/api/v1/routes/feedback_routes.py`
+	- `backend/app/api/v1/routes/metrics_routes.py`
+	- `backend/app/main.py`
+	- `backend/app/core/logging.py`
+	- `backend/app/core/metrics.py`
+	- `backend/tests/conftest.py`
+	- `backend/pyproject.toml`
+	- `backend/requirements.txt`
+	- `backend/app/api/**`
+	- `backend/app/core/security.py`
+	- `backend/app/api/v1/dependencies/auth.py`
+	- `backend/tests/unit/test_api/test_rate_limit.py`
+	- `backend/tests/integration/test_api.py`
+	- `backend/tests/integration/test_feedback_flow.py`
 - Do not touch:
 	- `frontend/**`
 	- `infra/**`
@@ -45,11 +62,11 @@
 - [ ] `RESUME FROM HERE` marker updated
 
 ## 4) Next Steps Queue (Top 5)
-1. Step 35 - Regression gate + commit for FR-2
-2. Step 36 - Evaluate FR-2 DoD criteria
-3. Step 37 - Select next requirement slice
-4. Step 38 - Begin next FR implementation cycle
-5. Step 39 - Regression gate + commit
+1. Step 39 - Regression gate + commit for FR-5
+2. Step 40 - Evaluate FR-5 DoD criteria
+3. Step 41 - Select next requirement slice
+4. Step 42 - Begin next FR implementation cycle
+5. Step 43 - Regression gate + commit for next slice
 
 ## 5) Completed Steps Log (Append-only)
 - Step 01 - Finalize AGENT_RUNBOOK and TESTING alignment
@@ -358,6 +375,55 @@
 		- `python -m pytest backend/tests/unit/test_connectors/test_github_client.py backend/tests/unit/test_connectors/test_diff_scanner.py backend/tests/unit/test_connectors/test_ignore_rules.py backend/tests/unit/test_connectors/test_file_validator.py backend/tests/unit/test_connectors/test_extractor.py backend/tests/unit/domain/test_ingest_service.py backend/tests/unit/test_api/test_auth.py backend/tests/integration/test_auth_flow.py backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/unit/test_workers/test_reindex_task.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py backend/tests/integration/test_reindex.py backend/tests/integration/test_ingest_flow.py -v`
 		- Result: 99 passed
 	- Date: 2026-03-12
+- Step 35 - Regression gate + commit for FR-2
+	- Requirements: Commit FR-2 ingestion artifacts after green regression gate; push to origin main
+	- Changes:
+		- `git add backend/app/connectors/github backend/app/domain/services/ingest_service.py backend/app/workers/tasks/ingest_tasks.py backend/tests/unit/test_connectors backend/tests/unit/domain/test_ingest_service.py backend/tests/integration/test_ingest_flow.py docs/00_backbone/WORK_STATUS.md docs/00_backbone/TRACEABILITY.md`
+		- `git commit -m "feat: FR-2 ingestion core slice and lifecycle tests (Steps 34-35)"`
+		- `git push origin main` → d92906b (cc3dd8e..d92906b, 16 files, 1190 ins)
+	- Tests:
+		- Reused Step 34 green regression gate
+		- `python -m pytest backend/tests/unit/test_connectors/test_github_client.py backend/tests/unit/test_connectors/test_diff_scanner.py backend/tests/unit/test_connectors/test_ignore_rules.py backend/tests/unit/test_connectors/test_file_validator.py backend/tests/unit/test_connectors/test_extractor.py backend/tests/unit/domain/test_ingest_service.py backend/tests/unit/test_api/test_auth.py backend/tests/integration/test_auth_flow.py backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/unit/test_workers/test_reindex_task.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py backend/tests/integration/test_reindex.py backend/tests/integration/test_ingest_flow.py -v`
+		- Result: 99 passed
+	- Date: 2026-03-12
+- Step 36 - Evaluate FR-2 DoD criteria
+	- Requirements: Assess FR-2 against Definition of Done
+	- Changes: Docs-only (WORK_STATUS.md, TRACEABILITY.md)
+	- DoD Evaluation:
+		- Code files exist and implemented: ✅
+		- Test files exist: ✅
+		- Tests pass (99/99): ✅
+		- WORK_STATUS green checkpoint (Step 34/35): ✅
+		- Decision: FR-2 elevated from `🟨` to `✅`
+	- Tests:
+		- Reused Step 35 green regression gate
+		- `python -m pytest backend/tests/unit/test_connectors/test_github_client.py backend/tests/unit/test_connectors/test_diff_scanner.py backend/tests/unit/test_connectors/test_ignore_rules.py backend/tests/unit/test_connectors/test_file_validator.py backend/tests/unit/test_connectors/test_extractor.py backend/tests/unit/domain/test_ingest_service.py backend/tests/unit/test_api/test_auth.py backend/tests/integration/test_auth_flow.py backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/unit/test_workers/test_reindex_task.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py backend/tests/integration/test_reindex.py backend/tests/integration/test_ingest_flow.py -v`
+		- Result: 99 passed
+	- Date: 2026-03-12
+- Step 37 - Select next requirement slice
+	- Requirements: Choose next FR/NFR to implement from remaining open requirements after FR-2 closure
+	- Decision: FR-5 (Ops and Observability) selected as next target
+	- Rationale:
+		- DECISIONS.md already defines canonical rate limiting and operational control semantics, making FR-5 the clearest next production-readiness slice
+		- `rate_limit.py`, `feedback_routes.py`, and observability surfaces exist but remain unimplemented; FR-5 is both high-impact and low-ambiguity
+		- FR-1 remaining work (secrets-at-rest and logging hygiene) is important but cross-cutting; it no longer blocks MVP query/ingest flow after FR-2 closure
+	- Step 38 scope: FR-5.1 rate limiting, FR-5.3 feedback loop logging, FR-5.2 retrieval-failure logging foundation
+	- Changes: Docs-only (WORK_STATUS.md, TRACEABILITY.md)
+	- Tests: N/A (selection step)
+	- Date: 2026-03-12
+- Step 38 - Implement FR-5 ops and observability slice
+	- Requirements: FR-5.1 rate limiting, FR-5.3 feedback loop logging, FR-5.2 retrieval-failure logging foundation
+	- Changes:
+		- Implemented per-user in-memory query rate limiter (50/hour) with concurrent stream cap (5) and retry-after semantics
+		- Implemented structured logging with recursive sensitive-field redaction and explicit retrieval-failure + feedback event helpers
+		- Implemented in-memory metrics registry and Prometheus text rendering (`/metrics` helper)
+		- Implemented feedback route helper for thumbs up/down handling with downvote review logging
+		- Wired minimal app facade for auth -> rate limit -> query SSE path, feedback path, and metrics endpoint
+		- Added FR-5 unit/integration tests for limiter, API boundary contracts, metrics exposure, and feedback logging
+	- Tests:
+		- `python -m pytest tests/unit/test_api/test_rate_limit.py tests/integration/test_api.py tests/integration/test_feedback_flow.py -v`
+		- Result: 16 passed
+	- Date: 2026-03-12
 - Step 32 - Evaluate FR-1 DoD criteria
 	- Requirements: Assess FR-1 against Definition of Done
 	- Changes: Docs-only (WORK_STATUS.md)
@@ -402,12 +468,12 @@
 
 ## 7) Last Known-Good State (Critical)
 - Branch: main
-- Commit: cc3dd8e (FR-2 code + tests uncommitted)
+- Commit: d92906b (Step 38 implementation complete; Step 39 regression/commit pending)
 - Docker Status: Not verified
 - Last Green Commands:
-	- `python -m pytest backend/tests/unit/test_connectors/test_github_client.py backend/tests/unit/test_connectors/test_diff_scanner.py backend/tests/unit/test_connectors/test_ignore_rules.py backend/tests/unit/test_connectors/test_file_validator.py backend/tests/unit/test_connectors/test_extractor.py backend/tests/unit/domain/test_ingest_service.py backend/tests/unit/test_api/test_auth.py backend/tests/integration/test_auth_flow.py backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/unit/test_workers/test_reindex_task.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py backend/tests/integration/test_reindex.py backend/tests/integration/test_ingest_flow.py -v`
+	- `python -m pytest tests/unit/test_api/test_rate_limit.py tests/integration/test_api.py tests/integration/test_feedback_flow.py -v`
 - Key Output:
-	- Step 34 FR-2 implementation green (32 FR-2 tests; 99/99 full regression); Step 35 commit is next
+	- Step 38 FR-5 scoped tests are green (16/16); Step 39 full regression + commit pending
 
 ## 8) Environment Setup Snapshot (Short)
 - Required env vars present: Unknown (verify before code step)
@@ -417,15 +483,16 @@
 	- `pytest tests/unit/<scope> -v`
 
 ## 9) RESUME FROM HERE
-RESUME FROM HERE: Step 35 - Regression gate + commit for FR-2
-Next action: `git add` FR-2 connector/service/tests plus `WORK_STATUS.md` and `TRACEABILITY.md`, then commit and push because the full regression gate is already green (99/99).
+RESUME FROM HERE: Step 39 - Regression gate + commit for FR-5
+Next action: run full regression gate for confidence beyond scoped FR-5 tests; if green, stage FR-5 files + docs, commit with Step 39 evidence, and push.
 
 ## 10) Session Notes (Max 5, newest first)
+- Completed Step 38: implemented FR-5 core slice (rate limiting, retrieval-failure observability foundation, feedback logging, metrics endpoint helper, minimal app wiring) and validated with 16/16 scoped tests.
+- Completed Step 37: selected FR-5 (Ops and Observability) as next target; concrete DECISIONS exist for rate limiting and operational controls; Step 38 scope is FR-5.1 + FR-5.3 + retrieval-failure logging foundation.
+- Completed Step 36: FR-2 DoD evaluation confirms all four criteria met; FR-2 elevated from `🟨` to `✅` using the Step 35 green checkpoint (99/99).
+- Completed Step 35: committed d92906b (16 files) and pushed to origin main (cc3dd8e..d92906b); FR-2 implementation artifacts are now on main.
 - Completed Step 34: implemented FR-2 ingestion core slice — GitHub client/diff/extractor/ignore/validator + ingest_service + ingest_tasks; 32 FR-2 tests and 99/99 full regression green.
 - Completed Step 33: selected FR-2 (Ingestion) as next target; auth layer unblocks admin ingest endpoint; Step 34 scope: FR-2.1-2.4.
-- Completed Step 32: FR-1 DoD eval — stays 🟨 (FR-1.4 secrets + FR-1.5 logging unimplemented); 67/67 green.
-- Completed Step 31: committed 5e145f1 (6 files) pushed to origin main (ca6703f..5e145f1).
-- Completed Step 30: FR-1 core slice — security.py + auth.py; 17 unit + 6 integration tests; 67/67 green.
 
 ## Update Discipline (Hard)
 Update this file only at:
