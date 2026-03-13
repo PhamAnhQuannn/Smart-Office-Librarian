@@ -1,0 +1,63 @@
+# Prometheus scrape configuration — Smart Office Librarian (Embedlyzer)
+# NFR-6 Observability — canonical metrics endpoint targeting
+# TESTING.md §5: /metrics exposes librarian_* metric families
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    project: embedlyzer
+    environment: ${ENVIRONMENT:-dev}
+
+# Alertmanager integration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# Alert and recording rules
+rule_files:
+  - /etc/prometheus/alerts.yml
+  - /etc/prometheus/recording_rules.yml
+
+scrape_configs:
+  # Backend API — canonical /metrics endpoint (TESTING.md §6.1 invariant: /metrics is canonical)
+  - job_name: embedlyzer_api
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    static_configs:
+      - targets:
+          - api:8000
+        labels:
+          service: api
+    metrics_path: /metrics
+    scheme: http
+
+  # Optional: /api/v1/metrics proxy (TESTING.md §6.1: /api/v1/metrics is optional)
+  - job_name: embedlyzer_api_v1_metrics
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    static_configs:
+      - targets:
+          - api:8000
+        labels:
+          service: api
+    metrics_path: /api/v1/metrics
+    scheme: http
+
+  # Celery workers — expose worker freshness metrics via Prometheus push or direct scrape
+  - job_name: embedlyzer_worker
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    static_configs:
+      - targets:
+          - worker:9091
+        labels:
+          service: worker
+
+  # Prometheus self-monitoring
+  - job_name: prometheus
+    static_configs:
+      - targets:
+          - localhost:9090

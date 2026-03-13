@@ -1,0 +1,203 @@
+# Prometheus alert rules — Smart Office Librarian (Embedlyzer)
+# NFR-6.3: Automated alerts for elevated error rates, ingestion failures, latency regressions
+# Phase 16 EXECUTION CHECKLIST: all 9 required alert categories implemented
+
+groups:
+  - name: embedlyzer_api_errors
+    interval: 1m
+    rules:
+
+      # 1. High HTTP error rate (NFR-6.3 — elevated error rates)
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(librarian_errors_total{code="HTTP_5XX"}[5m]))
+            /
+            (sum(rate(librarian_queries_total[5m])) + 0.001)
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          service: embedlyzer-api
+        annotations:
+          summary: "High HTTP 5xx error rate (> 5%)"
+          description: |
+            More than 5% of query requests are returning HTTP 5xx errors over the last 5 minutes.
+            Current rate: {{ $value | humanizePercentage }}.
+          runbook_url: "docs/07_runbooks/HIGH_ERROR_RATE.md"
+
+  - name: embedlyzer_readiness
+    interval: 1m
+    rules:
+
+      # 2. Readiness / health check failure
+      - alert: ReadinessFailure
+        expr: up{job="embedlyzer_api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: embedlyzer-api
+        annotations:
+          summary: "Embedlyzer API is down (readiness probe failing)"
+          description: |
+            Prometheus cannot scrape the API endpoint. Service may be crashed or unreachable.
+            Target: {{ $labels.instance }}.
+          runbook_url: "docs/07_runbooks/HIGH_ERROR_RATE.md"
+
+  - name: embedlyzer_ingestion
+    interval: 1m
+    rules:
+
+      # 3. Ingestion failure — NFR-6.3 / Phase 16
+      - alert: IngestionFailure
+        expr: |
+          increase(librarian_errors_total{code="INTERNAL"}[15m]) > 3
+        for: 0m
+        labels:
+          severity: warning
+          service: embedlyzer-worker
+        annotations:
+          summary: "Repeated internal errors detected (possible ingestion failure)"
+          description: |
+            More than 3 INTERNAL errors in the last 15 minutes.
+            May indicate a Celery ingestion task failure.
+          runbook_url: "docs/07_runbooks/CELERY_WORKER_DOWN.md"
+
+  - name: embedlyzer_latency
+    interval: 1m
+    rules:
+
+      # 4. Latency regression — NFR-1.2: p95 ≤ 500ms retrieval; TESTING 8.2: p95 ≤ 2.0s end-to-end
+      - alert: HighQueryLatency
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(librarian_stage_latency_ms_bucket{stage="total"}[5m])) by (le)
+          ) > 2000
+        for: 3m
+        labels:
+          severity: warning
+          service: embedlyzer-api
+        annotations:
+          summary: "p95 end-to-end query latency exceeds 2 000 ms"
+          description: |
+            The 95th-percentile total stage latency is above the 2.0 s production SLA.
+            Current p95: {{ $value | humanizeDuration }}.
+          runbook_url: "docs/07_runbooks/HIGH_LATENCY.md"
+
+      # 4b. TTFT regression
+      - alert: HighTTFTLatency
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(librarian_ttft_ms_bucket[5m])) by (le)
+          ) > 600
+        for: 3m
+        labels:
+          severity: warning
+          service: embedlyzer-api
+        annotations:
+          summary: "p95 TTFT exceeds 600 ms soft budget"
+          description: |
+            Time-to-first-token p95 is above the 600 ms soft budget (DECISIONS.md §8).
+            Current p95: {{ $value | humanizeDuration }}.
+          runbook_url: "docs/07_runbooks/HIGH_LATENCY.md"
+
+  - name: embedlyzer_refusals
+    interval: 1m
+    rules:
+
+      # 5. High refusal rate — TESTING 8.3: refusal rate ≤ 25% in production
+      - alert: HighRefusalRate
+        expr: |
+          (
+            sum(rate(librarian_refusals_total[15m]))
+            /
+            (sum(rate(librarian_queries_total[15m])) + 0.001)
+          ) > 0.25
+        for: 5m
+        labels:
+          severity: warning
+          service: embedlyzer-api
+        annotations:
+          summary: "Refusal rate exceeds 25% production threshold"
+          description: |
+            More than 25% of queries are being refused (LOW_SIMILARITY, BUDGET_EXCEEDED,
+            or LLM_UNAVAILABLE) over the last 15 minutes. May indicate a knowledge gap
+            or model/index issue.
+            Current rate: {{ $value | humanizePercentage }}.
+          runbook_url: "docs/07_runbooks/HIGH_ERROR_RATE.md"
+
+  - name: embedlyzer_budget
+    interval: 1m
+    rules:
+
+      # 6. Budget exceeded — DECISIONS.md §7: retrieval-only mode when budget exceeded
+      - alert: BudgetExceededSpike
+        expr: |
+          increase(librarian_refusals_total{reason="BUDGET_EXCEEDED"}[15m]) > 10
+        for: 0m
+        labels:
+          severity: warning
+          service: embedlyzer-api
+        annotations:
+          summary: "Spike in BUDGET_EXCEEDED refusals"
+          description: |
+            More than 10 BUDGET_EXCEEDED refusals in the last 15 minutes.
+            The system may be operating in retrieval-only mode due to token budget pressure.
+          runbook_url: "docs/07_runbooks/HIGH_ERROR_RATE.md"
+
+  - name: embedlyzer_redis
+    interval: 1m
+    rules:
+
+      # 7. Redis fail-open active — DECISIONS.md: rate limiter fail-open when Redis unavailable
+      - alert: RedisFailOpenActive
+        expr: |
+          increase(librarian_errors_total{code="INTERNAL"}[5m]) > 5
+        for: 0m
+        labels:
+          severity: warning
+          service: embedlyzer-api
+        annotations:
+          summary: "Possible Redis fail-open: elevated internal errors"
+          description: |
+            More than 5 INTERNAL errors in 5 minutes. If Redis is down, the rate
+            limiter will fail-open allowing unlimited requests — verify Redis health.
+          runbook_url: "docs/07_runbooks/DB_CONNECTION_POOL.md"
+
+  - name: embedlyzer_workers
+    interval: 2m
+    rules:
+
+      # 8. Worker freshness failure — Celery heartbeat not seen
+      - alert: WorkerFreshnessFailure
+        expr: up{job="embedlyzer_worker"} == 0
+        for: 3m
+        labels:
+          severity: warning
+          service: embedlyzer-worker
+        annotations:
+          summary: "Celery worker is unreachable (freshness failure)"
+          description: |
+            The Celery worker Prometheus scrape target has been down for 3+ minutes.
+            Ingestion tasks may be stalled.
+          runbook_url: "docs/07_runbooks/CELERY_WORKER_DOWN.md"
+
+  - name: embedlyzer_load_shedding
+    interval: 1m
+    rules:
+
+      # 9. Load shedding active — concurrent stream cap hit (NFR rate-limit concurrency=5)
+      - alert: LoadSheddingActive
+        expr: librarian_active_sse_streams >= 5
+        for: 2m
+        labels:
+          severity: warning
+          service: embedlyzer-api
+        annotations:
+          summary: "Maximum concurrent SSE streams reached (load shedding active)"
+          description: |
+            The active SSE stream gauge has been at the concurrency cap (5) for 2+ minutes.
+            New requests will be rejected with 429 RATE_LIMIT_CONCURRENCY_EXCEEDED.
+          runbook_url: "docs/07_runbooks/HIGH_LATENCY.md"
