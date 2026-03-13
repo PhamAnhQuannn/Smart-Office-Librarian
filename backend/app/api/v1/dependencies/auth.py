@@ -12,15 +12,28 @@ import os
 from app.core.security import (
     AuthenticatedUser,
     AuthenticationError,
+    SecretEncryptionError,
     UserRole,
+    decrypt_secret_value,
     decode_jwt_token,
 )
 
 
 def _get_jwt_secret() -> str:
-    secret = os.environ.get("JWT_SECRET", "")
+    secret = os.environ.get("JWT_SECRET", "").strip()
     if not secret:
-        raise RuntimeError("JWT_SECRET environment variable is not set")
+        encrypted = os.environ.get("JWT_SECRET_ENCRYPTED", "").strip()
+        if not encrypted:
+            raise RuntimeError("JWT_SECRET environment variable is not set")
+
+        key_material = os.environ.get("JWT_SECRET_ENCRYPTION_KEY", "").strip()
+        if not key_material:
+            raise RuntimeError("JWT_SECRET_ENCRYPTION_KEY environment variable is not set")
+
+        try:
+            return decrypt_secret_value(encrypted, key_material=key_material)
+        except SecretEncryptionError as exc:
+            raise RuntimeError("JWT_SECRET_ENCRYPTED could not be decrypted") from exc
     return secret
 
 

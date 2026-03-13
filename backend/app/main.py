@@ -15,7 +15,7 @@ from app.api.v1.dependencies.rate_limit import (
 )
 from app.api.v1.routes.feedback_routes import FeedbackSubmission, submit_feedback
 from app.api.v1.routes.metrics_routes import get_metrics_response
-from app.core.logging import InMemoryStructuredLogger
+from app.core.logging import InMemoryStructuredLogger, safe_error_message, sanitize_log_data
 from app.core.metrics import (
 	QUERY_REQUESTS_TOTAL,
 	RETRIEVAL_FAILURES_TOTAL,
@@ -52,9 +52,9 @@ def _error_response(
 		"headers": headers,
 		"body": {
 			"error_code": error_code,
-			"message": message,
+			"message": safe_error_message(message),
 			"request_id": str(uuid.uuid4()),
-			"details": details or {},
+			"details": sanitize_log_data(details or {}),
 		},
 	}
 

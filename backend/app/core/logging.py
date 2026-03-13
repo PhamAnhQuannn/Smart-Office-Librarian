@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
@@ -18,11 +19,21 @@ _SENSITIVE_KEYWORDS = (
 	"private_key",
 	"credential",
 )
+_BEARER_TOKEN_PATTERN = re.compile(r"(?i)bearer\s+[A-Za-z0-9._\-+/=]+")
+_JWT_PATTERN = re.compile(r"\b[A-Za-z0-9_-]{3,}\.[A-Za-z0-9_-]{3,}\.[A-Za-z0-9_-]{3,}\b")
+_PROVIDER_TOKEN_PATTERN = re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9]{10,}|sk-[A-Za-z0-9]{10,})\b")
 
 
 def _is_sensitive_key(key: str) -> bool:
 	normalized = key.lower()
 	return any(keyword in normalized for keyword in _SENSITIVE_KEYWORDS)
+
+
+def _sanitize_text(value: str) -> str:
+	redacted = _BEARER_TOKEN_PATTERN.sub("Bearer ***REDACTED***", value)
+	redacted = _JWT_PATTERN.sub(REDACTED, redacted)
+	redacted = _PROVIDER_TOKEN_PATTERN.sub(REDACTED, redacted)
+	return redacted
 
 
 def sanitize_log_data(value: Any) -> Any:
@@ -31,11 +42,18 @@ def sanitize_log_data(value: Any) -> Any:
 		for key, inner_value in value.items():
 			sanitized[key] = REDACTED if _is_sensitive_key(key) else sanitize_log_data(inner_value)
 		return sanitized
+	if isinstance(value, str):
+		return _sanitize_text(value)
 	if isinstance(value, list):
 		return [sanitize_log_data(item) for item in value]
 	if isinstance(value, tuple):
 		return tuple(sanitize_log_data(item) for item in value)
 	return value
+
+
+def safe_error_message(message: str) -> str:
+	"""Redact credentials/tokens before exposing messages externally."""
+	return _sanitize_text(message)
 
 
 @dataclass(frozen=True)

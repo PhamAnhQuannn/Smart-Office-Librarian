@@ -31,6 +31,7 @@ from app.core.security import (
     UserRole,
     build_rbac_filter,
     decode_jwt_token,
+    encrypt_secret_value,
 )
 
 _SECRET = "unit-test-jwt-secret-key"
@@ -141,6 +142,43 @@ def test_get_current_user_raises_when_sub_claim_missing() -> None:
     token = _make_jwt({"role": "user"})  # no 'sub'
     with pytest.raises(AuthenticationError, match="sub"):
         get_current_user(f"Bearer {token}", jwt_secret=_SECRET)
+
+
+def test_get_current_user_supports_encrypted_env_jwt_secret(monkeypatch: pytest.MonkeyPatch) -> None:
+    token = _make_jwt({"sub": "encrypted-user", "role": "user"}, secret="runtime-jwt-secret")
+    encrypted_secret = encrypt_secret_value("runtime-jwt-secret", key_material="master-key-material")
+
+    monkeypatch.delenv("JWT_SECRET", raising=False)
+    monkeypatch.setenv("JWT_SECRET_ENCRYPTED", encrypted_secret)
+    monkeypatch.setenv("JWT_SECRET_ENCRYPTION_KEY", "master-key-material")
+
+    user = get_current_user(f"Bearer {token}")
+    assert user.user_id == "encrypted-user"
+    assert user.role == UserRole.USER
+
+
+def test_get_current_user_raises_when_encrypted_secret_key_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    token = _make_jwt({"sub": "encrypted-user"}, secret="runtime-jwt-secret")
+    encrypted_secret = encrypt_secret_value("runtime-jwt-secret", key_material="master-key-material")
+
+    monkeypatch.delenv("JWT_SECRET", raising=False)
+    monkeypatch.setenv("JWT_SECRET_ENCRYPTED", encrypted_secret)
+    monkeypatch.delenv("JWT_SECRET_ENCRYPTION_KEY", raising=False)
+
+    with pytest.raises(RuntimeError, match="JWT_SECRET_ENCRYPTION_KEY"):
+        get_current_user(f"Bearer {token}")
+
+
+def test_get_current_user_raises_when_encrypted_secret_cannot_decrypt(monkeypatch: pytest.MonkeyPatch) -> None:
+    token = _make_jwt({"sub": "encrypted-user"}, secret="runtime-jwt-secret")
+    encrypted_secret = encrypt_secret_value("runtime-jwt-secret", key_material="master-key-material")
+
+    monkeypatch.delenv("JWT_SECRET", raising=False)
+    monkeypatch.setenv("JWT_SECRET_ENCRYPTED", encrypted_secret)
+    monkeypatch.setenv("JWT_SECRET_ENCRYPTION_KEY", "wrong-master-key")
+
+    with pytest.raises(RuntimeError, match="could not be decrypted"):
+        get_current_user(f"Bearer {token}")
 
 
 # ---------------------------------------------------------------------------

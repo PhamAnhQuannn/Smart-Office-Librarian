@@ -4,30 +4,21 @@
 - Project: Smart Office Librarian (Embedlyzer)
 - Architecture Version: v1.5
 - Status: In progress
-- Last Updated: 2026-03-12 22:09
+- Last Updated: 2026-03-12 22:40
 - Owner: Engineering Team
 
 ## 1) Current Step (Single Source of Truth)
-- Step ID: Step 39
-- Step Title: Regression gate + commit for FR-5
-- Requirements Covered: Verify FR-5 scoped and full regression, then stage/commit/push Step 38 artifacts
-- Step Status: In progress
-- Start Time: 2026-03-12 22:09
+- Step ID: Step 44
+- Step Title: Evaluate FR-1 DoD criteria
+- Requirements Covered: Assess FR-1 against DoD after Step 43 regression gate + checkpoint commit
+- Step Status: Not started
+- Start Time: Pending
 
 ## 2) Scope Lock (Current Step)
 - Files allowed to change:
 	- `docs/00_backbone/WORK_STATUS.md`
 	- `docs/00_backbone/TRACEABILITY.md`
-	- `backend/app/main.py`
-	- `backend/app/api/v1/dependencies/rate_limit.py`
-	- `backend/app/api/v1/routes/feedback_routes.py`
-	- `backend/app/api/v1/routes/metrics_routes.py`
-	- `backend/app/core/logging.py`
-	- `backend/app/core/metrics.py`
-	- `backend/tests/unit/test_api/test_rate_limit.py`
-	- `backend/tests/integration/test_api.py`
-	- `backend/tests/integration/test_feedback_flow.py`
-	- `.git/**` (commit metadata only)
+- `.git/**` (read-only evidence for prior step commit)
 - Files allowed to read:
 	- `docs/00_backbone/AGENT_RUNBOOK.md`
 	- `docs/00_backbone/WORK_STATUS.md`
@@ -35,19 +26,14 @@
 	- `docs/00_backbone/Backbond/DECISIONS.md`
 	- `docs/00_backbone/Backbond/REQUIREMENTS.md`
 	- `docs/00_backbone/Backbond/TESTING.md`
-	- `backend/app/api/v1/dependencies/rate_limit.py`
-	- `backend/app/api/v1/routes/feedback_routes.py`
-	- `backend/app/api/v1/routes/metrics_routes.py`
-	- `backend/app/main.py`
-	- `backend/app/core/logging.py`
-	- `backend/app/core/metrics.py`
-	- `backend/tests/conftest.py`
-	- `backend/pyproject.toml`
-	- `backend/requirements.txt`
-	- `backend/app/api/**`
 	- `backend/app/core/security.py`
+	- `backend/app/core/logging.py`
+	- `backend/app/main.py`
 	- `backend/app/api/v1/dependencies/auth.py`
-	- `backend/tests/unit/test_api/test_rate_limit.py`
+	- `backend/tests/unit/test_api/test_auth.py`
+	- `backend/tests/integration/test_auth_flow.py`
+	- `backend/tests/unit/test_core/test_logging_hygiene.py`
+	- `backend/tests/unit/test_core/test_secrets_encryption.py`
 	- `backend/tests/integration/test_api.py`
 	- `backend/tests/integration/test_feedback_flow.py`
 - Do not touch:
@@ -62,11 +48,11 @@
 - [ ] `RESUME FROM HERE` marker updated
 
 ## 4) Next Steps Queue (Top 5)
-1. Step 39 - Regression gate + commit for FR-5
-2. Step 40 - Evaluate FR-5 DoD criteria
-3. Step 41 - Select next requirement slice
-4. Step 42 - Begin next FR implementation cycle
-5. Step 43 - Regression gate + commit for next slice
+1. Step 44 - Evaluate FR-1 DoD criteria
+2. Step 45 - Select next requirement slice
+3. Step 46 - Begin next FR implementation cycle
+4. Step 47 - Regression gate + commit for next slice
+5. Step 48 - Evaluate DoD for next slice
 
 ## 5) Completed Steps Log (Append-only)
 - Step 01 - Finalize AGENT_RUNBOOK and TESTING alignment
@@ -424,6 +410,52 @@
 		- `python -m pytest tests/unit/test_api/test_rate_limit.py tests/integration/test_api.py tests/integration/test_feedback_flow.py -v`
 		- Result: 16 passed
 	- Date: 2026-03-12
+- Step 39 - Regression gate + commit for FR-5
+	- Requirements: Verify FR-5 scoped and full regression, then stage/commit/push Step 38 artifacts
+	- Changes:
+		- Ran full backend regression gate
+		- Committed FR-5 artifacts and docs: `53dd80f`
+		- Pushed to origin main: `d92906b..53dd80f`
+	- Tests:
+		- `python -m pytest tests -v`
+		- Result: 106 passed
+	- Date: 2026-03-12
+- Step 40 - Evaluate FR-5 DoD criteria
+	- Requirements: Assess FR-5 against Definition of Done
+	- Changes: Docs-only (WORK_STATUS.md, TRACEABILITY.md)
+	- DoD Evaluation:
+		- Code files exist and implemented (`main.py`, `rate_limit.py`, `feedback_routes.py`, `metrics_routes.py`, `logging.py`, `metrics.py`): ✅
+		- Test files exist (`test_rate_limit.py`, `test_api.py`, `test_feedback_flow.py`): ✅
+		- Tests pass (scoped 16/16 and full 106/106): ✅
+		- WORK_STATUS green checkpoint present (Step 39): ✅
+		- Decision: FR-5 elevated from `🟨` to `✅`
+	- Tests: N/A (evaluation step, reused Step 39 green checkpoint)
+	- Date: 2026-03-12
+- Step 41 - Select next requirement slice
+	- Requirements: Choose the next FR/NFR from remaining open requirements after FR-5 closure
+	- Decision: FR-1 hardening (FR-1.4 + FR-1.5) selected as next target
+	- Rationale:
+		- FR-1 remains the only in-progress core security requirement; FR-1.4 (AES-256 at rest) and FR-1.5 (logging hygiene) are still open
+		- Security hardening is high-priority MVP work and aligns with DECISIONS v1 focus on RBAC/security readiness
+		- FR-6 is frontend-heavy and FR-7 is `[v2]`; closing FR-1 first reduces security debt before expanding scope
+	- Step 42 scope: implement encryption-at-rest primitives and enforce credential/token redaction in logs/telemetry paths
+	- Changes: Docs-only (WORK_STATUS.md, TRACEABILITY.md)
+	- Tests:
+		- N/A (selection step)
+		- Reused latest green checkpoint: `python -m pytest tests -v` -> 106 passed
+	- Date: 2026-03-12
+- Step 42 - Implement FR-1 hardening slice
+	- Requirements: FR-1.4 secrets encryption at rest (AES-256) and FR-1.5 logging hygiene enforcement
+	- Changes:
+		- Implemented pure-stdlib AES-256-CTR + HMAC secret encryption/decryption primitives in `backend/app/core/security.py`
+		- Added encrypted env secret resolution path in `backend/app/api/v1/dependencies/auth.py` (`JWT_SECRET_ENCRYPTED` + `JWT_SECRET_ENCRYPTION_KEY`)
+		- Hardened log/error sanitization in `backend/app/core/logging.py` and `backend/app/main.py` for token/JWT/provider-secret redaction
+		- Added FR-1 hardening tests in `backend/tests/unit/test_core/test_secrets_encryption.py` and `backend/tests/unit/test_core/test_logging_hygiene.py`
+		- Extended auth unit/integration tests for encrypted-secret runtime resolution
+	- Tests:
+		- `python -m pytest tests/unit/test_api/test_auth.py tests/integration/test_auth_flow.py tests/unit/test_core/test_logging_hygiene.py tests/unit/test_core/test_secrets_encryption.py tests/integration/test_api.py tests/integration/test_feedback_flow.py -v`
+		- Result: 49 passed
+	- Date: 2026-03-12
 - Step 32 - Evaluate FR-1 DoD criteria
 	- Requirements: Assess FR-1 against Definition of Done
 	- Changes: Docs-only (WORK_STATUS.md)
@@ -456,6 +488,16 @@
 		- `python -m pytest backend/tests/unit/test_api/test_auth.py backend/tests/integration/test_auth_flow.py backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/unit/test_workers/test_reindex_task.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py backend/tests/integration/test_reindex.py -v`
 		- Result: 67 passed
 	- Date: 2026-03-12
+- Step 43 - Regression gate + commit for FR-1 hardening
+	- Requirements: Run broader FR-1 hardening regression gate, then stage/commit/push Step 42 artifacts
+	- Changes:
+		- Ran broader backend regression gate for confidence (`python -m pytest tests -v`)
+		- Staged FR-1 hardening artifacts (security/auth/logging/main + FR-1 hardening tests + backbone docs)
+		- Committed and pushed checkpoint for Step 42/43 artifact set
+	- Tests:
+		- `python -m pytest tests -v`
+		- Result: 120 passed
+	- Date: 2026-03-12
 
 ## 6) Known Issues / Blockers
 - No active blockers.
@@ -468,12 +510,12 @@
 
 ## 7) Last Known-Good State (Critical)
 - Branch: main
-- Commit: d92906b (Step 38 implementation complete; Step 39 regression/commit pending)
+- Commit: Step 43 checkpoint commit/push complete (see latest git history)
 - Docker Status: Not verified
 - Last Green Commands:
-	- `python -m pytest tests/unit/test_api/test_rate_limit.py tests/integration/test_api.py tests/integration/test_feedback_flow.py -v`
+	- `python -m pytest tests -v`
 - Key Output:
-	- Step 38 FR-5 scoped tests are green (16/16); Step 39 full regression + commit pending
+	- Broader backend regression gate is green (120/120); Step 44 FR-1 DoD evaluation is next
 
 ## 8) Environment Setup Snapshot (Short)
 - Required env vars present: Unknown (verify before code step)
@@ -483,16 +525,15 @@
 	- `pytest tests/unit/<scope> -v`
 
 ## 9) RESUME FROM HERE
-RESUME FROM HERE: Step 39 - Regression gate + commit for FR-5
-Next action: run full regression gate for confidence beyond scoped FR-5 tests; if green, stage FR-5 files + docs, commit with Step 39 evidence, and push.
+RESUME FROM HERE: Step 44 - Evaluate FR-1 DoD criteria
+Next action: verify all four DoD criteria for FR-1 using Step 43 green checkpoint evidence and decide `🟨` or `✅`.
 
 ## 10) Session Notes (Max 5, newest first)
-- Completed Step 38: implemented FR-5 core slice (rate limiting, retrieval-failure observability foundation, feedback logging, metrics endpoint helper, minimal app wiring) and validated with 16/16 scoped tests.
-- Completed Step 37: selected FR-5 (Ops and Observability) as next target; concrete DECISIONS exist for rate limiting and operational controls; Step 38 scope is FR-5.1 + FR-5.3 + retrieval-failure logging foundation.
-- Completed Step 36: FR-2 DoD evaluation confirms all four criteria met; FR-2 elevated from `🟨` to `✅` using the Step 35 green checkpoint (99/99).
-- Completed Step 35: committed d92906b (16 files) and pushed to origin main (cc3dd8e..d92906b); FR-2 implementation artifacts are now on main.
-- Completed Step 34: implemented FR-2 ingestion core slice — GitHub client/diff/extractor/ignore/validator + ingest_service + ingest_tasks; 32 FR-2 tests and 99/99 full regression green.
-- Completed Step 33: selected FR-2 (Ingestion) as next target; auth layer unblocks admin ingest endpoint; Step 34 scope: FR-2.1-2.4.
+- Completed Step 43: broader backend regression gate is green (`python -m pytest tests -v` -> 120/120), and FR-1 hardening checkpoint artifacts were committed and pushed.
+- Completed Step 42: implemented FR-1 hardening primitives (AES-256 secrets-at-rest and logging hygiene enforcement) with green scoped validation (49/49).
+- Completed Step 41: selected FR-1 hardening as the next slice; Step 42 scope is FR-1.4 secrets encryption at rest + FR-1.5 logging hygiene enforcement.
+- Completed Step 40: FR-5 DoD evaluation passed all four criteria; FR-5 elevated from `🟨` to `✅`.
+- Completed Step 39: full backend regression gate is green (106/106), FR-5 artifacts committed as `53dd80f`, and pushed to `origin/main`.
 
 ## Update Discipline (Hard)
 Update this file only at:

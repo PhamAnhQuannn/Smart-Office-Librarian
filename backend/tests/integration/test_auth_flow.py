@@ -30,6 +30,7 @@ from app.core.security import (
     AuthenticationError,
     UserRole,
     build_rbac_filter,
+    encrypt_secret_value,
 )
 
 _SECRET = "integration-test-jwt-secret"
@@ -103,3 +104,17 @@ def test_auth_flow_tampered_token_raises_authentication_error() -> None:
     token = _make_jwt({"sub": "user-1"}, secret="attacker-secret")
     with pytest.raises(AuthenticationError):
         get_current_user(f"Bearer {token}", jwt_secret=_SECRET)
+
+
+def test_auth_flow_supports_encrypted_runtime_jwt_secret(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Auth flow can resolve JWT secret from encrypted environment variable."""
+    token = _make_jwt({"sub": "enc-user", "role": "user"}, secret="runtime-secret")
+    encrypted_secret = encrypt_secret_value("runtime-secret", key_material="runtime-master-key")
+
+    monkeypatch.delenv("JWT_SECRET", raising=False)
+    monkeypatch.setenv("JWT_SECRET_ENCRYPTED", encrypted_secret)
+    monkeypatch.setenv("JWT_SECRET_ENCRYPTION_KEY", "runtime-master-key")
+
+    user = get_current_user(f"Bearer {token}")
+    assert user.user_id == "enc-user"
+    assert user.role == UserRole.USER
