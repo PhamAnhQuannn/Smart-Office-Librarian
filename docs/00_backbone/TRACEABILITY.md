@@ -4,7 +4,7 @@
 - Project: Smart Office Librarian (Embedlyzer)
 - Architecture Version: v1.5
 - Status: Active
-- Last Updated: 2026-03-12
+- Last Updated: 2026-03-12 21:36
 - Rule: `✅` means code exists, tests exist, tests pass, and WORK_STATUS has a green checkpoint.
 
 ## 1) Purpose Statement
@@ -119,7 +119,7 @@ For future scope items:
 |---|---|---|---|---|---|
 | FR-1 | Security and Auth | ⬜ | TBD | TBD | Step 02 |
 | FR-2 | Ingestion and Lifecycle | ⬜ | TBD | TBD | Step 02 |
-| FR-3 | RAG Pipeline | ⬜ | TBD | TBD | Step 02 |
+| FR-3 | RAG Pipeline | 🟨 | backend/app/domain/services/query_service.py; backend/app/rag/stages/refusal_stage.py | backend/tests/unit/domain/test_query_service.py; backend/tests/unit/rag/test_refusal_stage.py; backend/tests/integration/test_query_flow.py (2026-03-12: consolidated 10 passed; PR checkpoint evidence prepared; pending API/RAG integration suites from TESTING.md) | Step 09 |
 | FR-4 | Index Maintenance and Versioning | ⬜ | TBD | TBD | Step 02 |
 | FR-5 | Ops and Observability | ⬜ | TBD | TBD | Step 02 |
 | FR-6 | Frontend | ⬜ | TBD | TBD | Step 02 |
@@ -132,7 +132,7 @@ For future scope items:
 | NFR-2 | Scalability | ⬜ | TBD | TBD | Step 02 |
 | NFR-3 | Reliability | ⬜ | TBD | TBD | Step 02 |
 | NFR-4 | Security and Privacy | ⬜ | TBD | TBD | Step 02 |
-| NFR-5 | Maintainability | ⬜ | TBD | TBD | Step 02 |
+| NFR-5 | Maintainability | 🟨 | docs/00_backbone/Backbond/TESTING.md; docs/00_backbone/WORK_STATUS.md | docs/00_backbone/Backbond/TESTING.md (deterministic parity checks) | Step 03 |
 | NFR-6 | Observability | ⬜ | TBD | TBD | Step 02 |
 | NFR-7 | Cost Controls | ⬜ | TBD | TBD | Step 02 |
 

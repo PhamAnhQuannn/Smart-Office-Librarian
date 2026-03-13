@@ -385,7 +385,7 @@ For a given histogram prefix, `_sum` and `_count` MUST expose the same labels as
 Unless overridden by environment config:
 
 * Embedding cache TTL default: **24h**
-* Retrieval cache TTL (if implemented): **minutes**, not days (RBAC scoped)
+* Retrieval cache TTL default: **60s** (DECISIONS canonical; RBAC scoped)
 
 ---
 
