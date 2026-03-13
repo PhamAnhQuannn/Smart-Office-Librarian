@@ -4,21 +4,24 @@
 - Project: Smart Office Librarian (Embedlyzer)
 - Architecture Version: v1.5
 - Status: In progress
-- Last Updated: 2026-03-12 20:21
+- Last Updated: 2026-03-12 20:35
 - Owner: Engineering Team
 
 ## 1) Current Step (Single Source of Truth)
-- Step ID: Step 28
-- Step Title: Stage + commit FR-4 integration artifacts
-- Requirements Covered: Stage and push test_reindex.py + updated TRACEABILITY/WORK_STATUS to origin main
+- Step ID: Step 31
+- Step Title: Regression gate + commit for FR-1
+- Requirements Covered: Run full regression suite (67 tests), commit FR-1 artifacts, push to origin main
 - Step Status: Not started
 - Start Time: Pending
 
 ## 2) Scope Lock (Current Step)
 - Files allowed to change:
+	- `backend/app/core/security.py`
+	- `backend/app/api/v1/dependencies/auth.py`
+	- `backend/tests/unit/test_api/test_auth.py`
+	- `backend/tests/integration/test_auth_flow.py`
 	- `docs/00_backbone/WORK_STATUS.md`
 	- `docs/00_backbone/TRACEABILITY.md`
-	- `backend/tests/integration/test_reindex.py`
 - Files allowed to read:
 	- `docs/00_backbone/AGENT_RUNBOOK.md`
 	- `docs/00_backbone/WORK_STATUS.md`
@@ -26,10 +29,11 @@
 	- `docs/00_backbone/Backbond/DECISIONS.md`
 	- `docs/00_backbone/Backbond/REQUIREMENTS.md`
 	- `docs/00_backbone/Backbond/TESTING.md`
-	- `backend/app/domain/services/index_safety_service.py`
-	- `backend/app/workers/tasks/reindex_tasks.py`
-	- `backend/tests/unit/domain/test_index_safety_service.py`
-	- `backend/tests/unit/test_workers/test_reindex_task.py`
+	- `backend/app/core/security.py`
+	- `backend/app/api/v1/dependencies/auth.py`
+	- `backend/app/api/v1/dependencies/settings.py`
+	- `backend/app/core/config.py`
+	- `backend/app/core/errors.py`
 - Do not touch:
 	- `frontend/**`
 	- `infra/**`
@@ -42,11 +46,11 @@
 - [ ] `RESUME FROM HERE` marker updated
 
 ## 4) Next Steps Queue (Top 5)
-1. Step 28 - Stage + commit FR-4 integration artifacts
-2. Step 29 - Select next requirement slice
-3. Step 30 - Begin next FR/NFR implementation cycle
-4. Step 31 - Regression gate + commit
-5. Step 32 - Evaluate next requirement DoD criteria
+1. Step 31 - Regression gate + commit for FR-1
+2. Step 32 - Evaluate FR-1 DoD criteria
+3. Step 33 - Select next requirement slice (FR-2 / FR-5)
+4. Step 34 - Begin next FR implementation cycle
+5. Step 35 - Regression gate + commit
 
 ## 5) Completed Steps Log (Append-only)
 - Step 01 - Finalize AGENT_RUNBOOK and TESTING alignment
@@ -313,6 +317,35 @@
 		- `python -m pytest backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/unit/test_workers/test_reindex_task.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py backend/tests/integration/test_reindex.py -v`
 		- Result: 44 passed
 	- Date: 2026-03-12
+- Step 28 - Stage + commit FR-4 integration artifacts
+	- Requirements: Commit test_reindex.py + docs updates to origin main
+	- Changes:
+		- `git add backend/tests/integration/test_reindex.py docs/00_backbone/TRACEABILITY.md docs/00_backbone/WORK_STATUS.md`
+		- `git commit -m "feat: FR-4 integration reindex suite + DoD elevation (Steps 26-27)"`
+		- `git push origin main` → ca6703f (4371c69..ca6703f, 3 files, 304 ins)
+	- Date: 2026-03-12
+- Step 29 - Select next requirement slice
+	- Requirements: Review open requirements and pick next implementation target
+	- Decision: FR-1 (Security and Auth) selected as next target
+	- Rationale:
+		- DECISIONS.md v1 focus explicitly names RBAC as core; `auth.py` and `security.py` are empty
+		- FR-2 (Ingestion) admin endpoints depend on FR-1 auth — FR-1 unblocks FR-2
+		- FR-3/FR-4 tests assert RBAC propagation but no auth implementation exists yet
+	- Step 30 scope: FR-1.1 JWT/API-key (security.py), FR-1.2 Admin/User RBAC roles (auth.py), FR-1.3 permission-filter wiring
+	- Changes: Docs-only (WORK_STATUS.md, TRACEABILITY.md)
+	- Tests: N/A (selection step)
+	- Date: 2026-03-12
+- Step 30 - Implement FR-1 auth/RBAC core slice
+	- Requirements: FR-1.1 JWT/API-key authentication, FR-1.2 Admin/User role model, FR-1.3 permission-filtered retrieval RBAC dependency
+	- Changes:
+		- Implemented `backend/app/core/security.py`: HS256 JWT decode/verify, `UserRole` enum, `AuthenticatedUser` dataclass, `build_rbac_filter()` (DECISIONS.md §5.1 canonical RBAC)
+		- Implemented `backend/app/api/v1/dependencies/auth.py`: `get_current_user()` resolves user from Bearer JWT; raises `AuthenticationError` (→ 401) on any failure
+		- Created `backend/tests/unit/test_api/test_auth.py` (17 tests: JWT decode, get_current_user, build_rbac_filter)
+		- Created `backend/tests/integration/test_auth_flow.py` (6 tests: admin/user flows, expired/tampered token, RBAC dict-compatibility)
+	- Tests:
+		- `python -m pytest backend/tests/unit/test_api/test_auth.py backend/tests/integration/test_auth_flow.py backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/unit/test_workers/test_reindex_task.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py backend/tests/integration/test_reindex.py -v`
+		- Result: 67 passed
+	- Date: 2026-03-12
 
 ## 6) Known Issues / Blockers
 - No active blockers.
@@ -325,12 +358,12 @@
 
 ## 7) Last Known-Good State (Critical)
 - Branch: main
-- Commit: 4371c69 (test_reindex.py + docs changes uncommitted)
+- Commit: ca6703f (FR-1 code + tests uncommitted)
 - Docker Status: Not verified
 - Last Green Commands:
-	- `python -m pytest backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/unit/test_workers/test_reindex_task.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py backend/tests/integration/test_reindex.py -v`
+	- `python -m pytest backend/tests/unit/test_api/test_auth.py backend/tests/integration/test_auth_flow.py backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/unit/test_workers/test_reindex_task.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py backend/tests/integration/test_reindex.py -v`
 - Key Output:
-	- Step 27 FR-4 DoD evaluation complete (44/44); FR-4 elevated to `✅`; Step 28 commit is next
+	- Step 30 FR-1 implementation green (67/67); Step 31 commit is next
 
 ## 8) Environment Setup Snapshot (Short)
 - Required env vars present: Unknown (verify before code step)
@@ -340,15 +373,15 @@
 	- `pytest tests/unit/<scope> -v`
 
 ## 9) RESUME FROM HERE
-RESUME FROM HERE: Step 28 - Stage + commit FR-4 integration artifacts
-Next action: `git add` test_reindex.py + TRACEABILITY.md + WORK_STATUS.md, then `git commit` and `git push origin main`.
+RESUME FROM HERE: Step 31 - Regression gate + commit for FR-1
+Next action: run full 67-test regression suite; if green, `git add` security.py, auth.py, test_auth.py, test_auth_flow.py, WORK_STATUS.md, TRACEABILITY.md, then commit + push.
 
 ## 10) Session Notes (Max 5, newest first)
+- Completed Step 30: FR-1 auth/RBAC core slice — implemented security.py (JWT/HS256, UserRole, build_rbac_filter) + auth.py (get_current_user); 17 unit + 6 integration tests; 67/67 green.
+- Completed Step 29: selected FR-1 (Security and Auth) as next implementation target; `auth.py` + `security.py` are empty; FR-1 unblocks FR-2 (admin ingest endpoints). Step 30 scope: FR-1.1 JWT/API-key + FR-1.2 RBAC roles + FR-1.3 permission filter.
+- Completed Step 28: committed ca6703f (3 files: test_reindex.py, TRACEABILITY.md, WORK_STATUS.md) and pushed to origin main (4371c69..ca6703f); FR-4 fully closed.
 - Completed Step 27: FR-4 DoD evaluation confirms all four criteria met; FR-4 elevated from `🟨` to `✅` in TRACEABILITY.md (44/44 green).
-- Completed Step 26: created `test_reindex.py` (9 integration tests covering safety-gated swap, model/version mismatch, validation failure, CAS race, metadata round-trip, sequential swaps); 44/44 green.
-- Completed Step 25: committed 4371c69 (9 files, 839 ins) and pushed to origin main (2b0f79e..4371c69); working tree is clean.
-- Completed Step 24: staged 9 files (Steps 17–23 working tree); pre-commit gate green (25/25); ready for Step 25 commit/push.
-- Completed Step 23: docs sync complete; fixed stale FR-4 Owner/Step (Step 19 → Step 26) in TRACEABILITY.md; all backbone docs consistent with FR-3 `✅`.
+- Completed Step 26: created `test_reindex.py` (9 integration tests); 44/44 green.
 
 ## Update Discipline (Hard)
 Update this file only at:
