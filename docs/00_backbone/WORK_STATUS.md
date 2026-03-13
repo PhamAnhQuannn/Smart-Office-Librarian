@@ -4,17 +4,15 @@
 - Project: Smart Office Librarian (Embedlyzer)
 - Architecture Version: v1.5
 - Status: In progress
-- Last Updated: 2026-03-12 20:36
-- Last Updated: 2026-03-12 20:37
-- Last Updated: 2026-03-12 20:40
+- Last Updated: 2026-03-12 20:53
 - Owner: Engineering Team
 
 ## 1) Current Step (Single Source of Truth)
-- Step ID: Step 34
-- Step Title: Implement FR-2 ingestion core slice
-- Requirements Covered: FR-2.1 GitHub connector, FR-2.2 incremental sync (SHA tracking), FR-2.3 stale content purge, FR-2.4 exclusion lists
-- Step Status: Not started
-- Start Time: Pending
+- Step ID: Step 35
+- Step Title: Regression gate + commit for FR-2
+- Requirements Covered: Commit FR-2 ingestion artifacts after green regression gate; push to origin main
+- Step Status: In progress
+- Start Time: 2026-03-12 20:56
 
 ## 2) Scope Lock (Current Step)
 - Files allowed to change:
@@ -47,11 +45,11 @@
 - [ ] `RESUME FROM HERE` marker updated
 
 ## 4) Next Steps Queue (Top 5)
-1. Step 34 - Implement FR-2 ingestion core slice
-2. Step 35 - Regression gate + commit for FR-2
-3. Step 36 - Evaluate FR-2 DoD criteria
-4. Step 37 - Select next requirement slice
-5. Step 38 - Begin next FR implementation cycle
+1. Step 35 - Regression gate + commit for FR-2
+2. Step 36 - Evaluate FR-2 DoD criteria
+3. Step 37 - Select next requirement slice
+4. Step 38 - Begin next FR implementation cycle
+5. Step 39 - Regression gate + commit
 
 ## 5) Completed Steps Log (Append-only)
 - Step 01 - Finalize AGENT_RUNBOOK and TESTING alignment
@@ -347,6 +345,19 @@
 	- Changes: Docs-only (WORK_STATUS.md, TRACEABILITY.md)
 	- Tests: N/A (selection step)
 	- Date: 2026-03-12
+- Step 34 - Implement FR-2 ingestion core slice
+	- Requirements: FR-2.1 GitHub connector, FR-2.2 incremental sync (SHA tracking), FR-2.3 stale content purge, FR-2.4 exclusion lists
+	- Changes:
+		- Implemented GitHub connector helpers in `backend/app/connectors/github/client.py`, `diff_scanner.py`, `extractor.py`, `ignore_rules.py`, and `validators.py`
+		- Implemented `backend/app/domain/services/ingest_service.py` for queueing, SHA-based incremental sync, rename/delete purge, `.librarianignore` filtering, file-size/chunk-count enforcement, and ingestion-level SimHash dedupe
+		- Implemented `backend/app/workers/tasks/ingest_tasks.py` as the worker-facing ingest wrapper
+		- Added FR-2 tests in `backend/tests/unit/test_connectors/`, `backend/tests/unit/domain/test_ingest_service.py`, and `backend/tests/integration/test_ingest_flow.py`
+	- Tests:
+		- `python -m pytest backend/tests/unit/test_connectors/test_github_client.py backend/tests/unit/test_connectors/test_diff_scanner.py backend/tests/unit/test_connectors/test_ignore_rules.py backend/tests/unit/test_connectors/test_file_validator.py backend/tests/unit/test_connectors/test_extractor.py backend/tests/unit/domain/test_ingest_service.py backend/tests/integration/test_ingest_flow.py -v`
+		- Result: 32 passed
+		- `python -m pytest backend/tests/unit/test_connectors/test_github_client.py backend/tests/unit/test_connectors/test_diff_scanner.py backend/tests/unit/test_connectors/test_ignore_rules.py backend/tests/unit/test_connectors/test_file_validator.py backend/tests/unit/test_connectors/test_extractor.py backend/tests/unit/domain/test_ingest_service.py backend/tests/unit/test_api/test_auth.py backend/tests/integration/test_auth_flow.py backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/unit/test_workers/test_reindex_task.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py backend/tests/integration/test_reindex.py backend/tests/integration/test_ingest_flow.py -v`
+		- Result: 99 passed
+	- Date: 2026-03-12
 - Step 32 - Evaluate FR-1 DoD criteria
 	- Requirements: Assess FR-1 against Definition of Done
 	- Changes: Docs-only (WORK_STATUS.md)
@@ -391,13 +402,12 @@
 
 ## 7) Last Known-Good State (Critical)
 - Branch: main
-- Commit: 5e145f1 (clean — no uncommitted changes)
+- Commit: cc3dd8e (FR-2 code + tests uncommitted)
 - Docker Status: Not verified
 - Last Green Commands:
-	- `python -m pytest backend/tests/unit/test_api/test_auth.py backend/tests/integration/test_auth_flow.py backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/unit/test_workers/test_reindex_task.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py backend/tests/integration/test_reindex.py -v`
+	- `python -m pytest backend/tests/unit/test_connectors/test_github_client.py backend/tests/unit/test_connectors/test_diff_scanner.py backend/tests/unit/test_connectors/test_ignore_rules.py backend/tests/unit/test_connectors/test_file_validator.py backend/tests/unit/test_connectors/test_extractor.py backend/tests/unit/domain/test_ingest_service.py backend/tests/unit/test_api/test_auth.py backend/tests/integration/test_auth_flow.py backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/unit/test_workers/test_reindex_task.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py backend/tests/integration/test_reindex.py backend/tests/integration/test_ingest_flow.py -v`
 - Key Output:
-- Key Output:
-	- FR-1 67/67 green; commit 5e145f1 pushed; Steps 32-33 closed; FR-2 selected as Step 34 target
+	- Step 34 FR-2 implementation green (32 FR-2 tests; 99/99 full regression); Step 35 commit is next
 
 ## 8) Environment Setup Snapshot (Short)
 - Required env vars present: Unknown (verify before code step)
@@ -407,16 +417,15 @@
 	- `pytest tests/unit/<scope> -v`
 
 ## 9) RESUME FROM HERE
-RESUME FROM HERE: Step 33 - Select next requirement slice
-RESUME FROM HERE: Step 34 - Implement FR-2 ingestion core slice
-Next action: implement FR-2.1 GitHub connector (base_connector.py pattern), FR-2.2 incremental SHA sync, FR-2.3 stale content purge, FR-2.4 exclusion list; add unit + integration tests; run full regression suite.
+RESUME FROM HERE: Step 35 - Regression gate + commit for FR-2
+Next action: `git add` FR-2 connector/service/tests plus `WORK_STATUS.md` and `TRACEABILITY.md`, then commit and push because the full regression gate is already green (99/99).
 
 ## 10) Session Notes (Max 5, newest first)
+- Completed Step 34: implemented FR-2 ingestion core slice — GitHub client/diff/extractor/ignore/validator + ingest_service + ingest_tasks; 32 FR-2 tests and 99/99 full regression green.
 - Completed Step 33: selected FR-2 (Ingestion) as next target; auth layer unblocks admin ingest endpoint; Step 34 scope: FR-2.1-2.4.
 - Completed Step 32: FR-1 DoD eval — stays 🟨 (FR-1.4 secrets + FR-1.5 logging unimplemented); 67/67 green.
 - Completed Step 31: committed 5e145f1 (6 files) pushed to origin main (ca6703f..5e145f1).
 - Completed Step 30: FR-1 core slice — security.py + auth.py; 17 unit + 6 integration tests; 67/67 green.
-- Completed Step 29: selected FR-1 as next target; unblocks FR-2 (admin endpoints need auth).
 
 ## Update Discipline (Hard)
 Update this file only at:
