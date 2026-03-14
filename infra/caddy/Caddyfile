@@ -1,0 +1,26 @@
+{
+	servers {
+		protocols h1 h2 h3
+	}
+}
+
+http:// {
+	redir https://{host}{uri} permanent
+}
+
+https:// {
+	tls internal {
+		protocols tls1.3
+	}
+
+	encode zstd gzip
+
+	@api path /api/* /metrics /health
+	handle @api {
+		reverse_proxy {$API_UPSTREAM:backend:8000}
+	}
+
+	handle {
+		reverse_proxy {$FRONTEND_UPSTREAM:frontend:3000}
+	}
+}
