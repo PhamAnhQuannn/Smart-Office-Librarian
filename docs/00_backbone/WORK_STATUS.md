@@ -4,642 +4,62 @@
 - Project: Smart Office Librarian (Embedlyzer)
 - Architecture Version: v1.5
 - Status: In progress
-- Last Updated: 2026-03-13 14:06
+- Last Updated: 2026-03-13 22:08
 - Owner: Engineering Team
 
 ## 1) Current Step (Single Source of Truth)
-- Step ID: Step 51
-- Step Title: Regression gate + commit for subsequent slice
-- Requirements Covered: NFR-6 observability foundation regression gate and checkpoint commit for Step 50 artifacts
+- Step ID: Step 75
+- Step Title: Regression gate + commit for Step 74 NFR-4 audit logging artifacts
+- Requirements Covered: NFR-4.6 security auditability + NFR-4.3 14-day audit-log retention foundation
 - Step Status: In progress
-- Start Time: 2026-03-13 14:06
+- Start Time: 2026-03-14
+- End Time: N/A
 
 ## 2) Scope Lock (Current Step)
-- Files allowed to change:
-	- `backend/app/core/security.py` (only blocker B-051 stabilization)
-	- `backend/tests/unit/test_core/test_secrets_encryption.py` (only blocker B-051 stabilization)
-	- `backend/app/core/metrics.py` (commit only; no further content edits)
-	- `backend/app/core/telemetry.py` (commit only; no further content edits)
-	- `backend/app/main.py` (commit only; no further content edits)
-	- `backend/tests/unit/test_core/test_telemetry.py` (commit only; no further content edits)
-	- `backend/tests/unit/test_api/test_metrics_routes.py` (commit only; no further content edits)
-	- `backend/tests/integration/test_api.py` (commit only; no further content edits)
+- Files to commit (Step 74 artifacts):
+	- `backend/app/core/logging.py`
+	- `backend/app/api/v1/routes/admin_routes.py`
+	- `backend/tests/unit/test_api/test_admin_routes.py`
+	- `backend/tests/integration/test_audit_logging.py`
+	- `docs/08_governance/AUDIT_LOGGING.md`
 	- `docs/00_backbone/WORK_STATUS.md`
-	- `.git/**` (commit metadata only)
+- No TRACEABILITY change this step (Step 76 is the evaluation step)
+- No FR-7 / v2 work
+- Scope is Step 75 only
 - Files allowed to read:
-	- `backend/app/core/security.py`
-	- `backend/tests/unit/test_core/test_secrets_encryption.py`
-	- `backend/app/core/metrics.py`
-	- `backend/app/core/telemetry.py`
-	- `backend/app/main.py`
-	- `backend/tests/unit/test_core/**`
-	- `backend/tests/unit/test_api/**`
-	- `backend/tests/integration/test_api.py`
-	- `docs/00_backbone/AGENT_RUNBOOK.md`
-	- `docs/00_backbone/WORK_STATUS.md`
-	- `docs/00_backbone/TRACEABILITY.md`
-	- `docs/00_backbone/Backbond/DECISIONS.md`
-	- `docs/00_backbone/Backbond/REQUIREMENTS.md`
-	- `docs/00_backbone/Backbond/TESTING.md`
-	- `docs/00_backbone/Backbond/implement_steps.txt`
+	- All 7 backbone files (WORK_STATUS, TRACEABILITY, AGENT_RUNBOOK, implement_steps, DECISIONS, REQUIREMENTS, TESTING)
+	- Step 74 implementation + test files
 - Do not touch:
-	- `frontend/**`
-	- `backend/app/domain/**`
-	- `backend/app/rag/**`
-	- `backend/app/workers/**`
+	- `backend/**` outside scope lock
 	- `infra/**`
+	- `frontend/**`
+	- Files outside scope lock
 
 ## 3) Acceptance Criteria (Current Step)
-- [ ] Blocker B-051 root cause addressed within allowed scope
-- [ ] Step 50 observability validation commands re-run green
-- [ ] Only Step 50 observability files are staged/committed
-- [ ] Checkpoint commit created for Step 50 artifact set
-- [ ] `WORK_STATUS.md` updated with green checkpoint and next-step pointer
+- [ ] Scoped regression gate passes (4 unit + 2 integration tests green)
+- [ ] Scoped checkpoint commit created with Step 74 artifacts + WORK_STATUS
+- [ ] Pushed to origin main
+- [ ] WORK_STATUS updated with Step 75 outcome and RESUME pointer to Step 76
 
 ## 4) Next Steps Queue (Top 5)
-1. Step 51 - Regression gate + commit for subsequent slice
-2. Step 52 - Evaluate DoD for subsequent slice
-3. Step 53 - Select next production-readiness slice
-4. Step 54 - Begin next production-readiness implementation cycle
-5. Step 55 - Regression gate + commit for production-readiness slice
+1. Step 76 - Evaluate requirement readiness status update for subsequent slice
+2. Step 77 - Select next production-readiness slice
+3. Step 78 - Begin next production-readiness implementation cycle
+4. Step 79 - Regression gate + commit for subsequent slice
+5. Step 80 - Evaluate requirement readiness status update for subsequent slice
 
-## 5) Completed Steps Log (Append-only)
-- Step 01 - Finalize AGENT_RUNBOOK and TESTING alignment
-	- Requirements: Workflow governance baseline
-	- Commit: Not available (no git metadata detected)
-	- Tests: Docs-only review (no runtime tests)
-	- Date: 2026-03-12
-- Step 02 - Create TRACEABILITY baseline map
-	- Requirements: FR/NFR map skeleton and status rules
-	- Commit: Not available (no git metadata detected)
-	- Tests: N/A (docs-only step)
-	- Date: 2026-03-12
-- Step 03 - Validate TESTING.md to DECISIONS parity
-	- Requirements: Contract consistency hardening
-	- Commit: 7e9220c
+## 5) Latest Checkpoint Summary
+- Step 74 - Begin next production-readiness implementation cycle
+	- Requirements: NFR-4 audit logging + retention foundation for admin source/threshold changes
+	- Commit: Not committed yet (committed in Step 75)
 	- Tests:
-		- PowerShell Select-String parity checks on TESTING.md for: 409 mismatch contract, refusal contract, threshold semantics, retrieval/token/rate constants, cache TTL
-		- Result: ALL_PARITY_CHECKS_GREEN
-	- Date: 2026-03-12
-- Step 04 - Implement FR-3.3 threshold refusal path
-	- Requirements: FR-3.3 threshold refusal contract
-	- Commit: Working tree (not committed yet)
-	- Tests:
-		- `python -m pytest backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py -v`
-		- Result: 5 passed
-	- Date: 2026-03-12
-- Step 05 - Add/verify unit tests for Step 04 scope
-	- Requirements: FR-3.3 threshold refusal path test hardening
-	- Commit: Working tree (not committed yet)
-	- Tests:
-		- `python -m pytest backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py -v`
-		- Result: 7 passed
-	- Date: 2026-03-12
-- Step 06 - Run integration checks for touched contracts
-	- Requirements: FR-3.3 contract verification beyond unit scope
-	- Commit: Working tree (not committed yet)
-	- Tests:
-		- `python -m pytest backend/tests/integration/test_query_flow.py -v`
-		- Result: 3 passed
-	- Date: 2026-03-12
-- Step 07 - Update TRACEABILITY statuses for completed implementation
-	- Requirements: FR-3 status/evidence normalization after integration run
-	- Commit: Working tree (not committed yet)
-	- Tests:
-		- `python -m pytest backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py -v`
-		- Result: 10 passed
-	- Date: 2026-03-12
-- Step 08 - Prepare PR with checkpoint evidence
-	- Requirements: FR-3.3 implementation/test evidence packaging
-	- Commit: Working tree (not committed yet)
-	- Tests:
-		- `python -m pytest backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py -v`
-		- Result: 10 passed
-	- Evidence package:
-		- Implementation: `backend/app/domain/services/query_service.py`, `backend/app/rag/stages/refusal_stage.py`
-		- Unit tests: `backend/tests/unit/domain/test_query_service.py`, `backend/tests/unit/rag/test_refusal_stage.py`
-		- Integration tests: `backend/tests/integration/test_query_flow.py`
-		- Residual gap: API-level and broader RAG integration suites from `TESTING.md` still pending; FR-3 remains partial
-	- Date: 2026-03-12
-- Step 09 - Commit and push FR-3.3 step artifacts
-	- Requirements: Version-control checkpoint for FR-3.3 scope
-	- Commit: 4ba4006
-	- Tests:
-		- `python -m pytest backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py -v`
-		- Result: 10 passed
-	- Push:
-		- `git push origin main`
-		- Result: success (`7e9220c..4ba4006`)
-	- Date: 2026-03-12
-- Step 10 - Start next requirement slice from queue
-	- Requirements: Select and scope next FR/NFR implementation target
-	- Decision: Next slice is FR-4.2 cross-version safety mismatch contract
-	- Scope for Step 11:
-		- `backend/app/domain/services/index_safety_service.py`
-		- `backend/app/domain/services/query_service.py`
-		- `backend/tests/unit/domain/test_index_safety_service.py`
-		- `backend/tests/unit/domain/test_query_service.py`
-	- Tests:
-		- `python -m pytest backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py -v`
-		- Result: 10 passed
-	- Date: 2026-03-12
-- Step 11 - Begin next FR implementation cycle
-	- Requirements: FR-4.2 Cross-version safety mismatch contract (409 canonical)
-	- Commit: Working tree (not committed yet)
-	- Changes:
-		- Implemented `IndexSafetyService` with canonical mismatch error payloads
-		- Wired optional index-safety validation into `QueryService`
-		- Added `test_index_safety_service.py` and expanded `test_query_service.py`
-	- Tests:
-		- `python -m pytest backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py -v`
-		- Result: 15 passed
-	- Date: 2026-03-12
-- Step 12 - Reconcile roadmap status after push
-	- Requirements: Align queue/priorities after FR-4.2 slice completion
-	- Decision:
-		- Prioritize FR-3 API/RAG integration backlog to close partial FR-3 status
-		- Defer additional FR-4 breadth (FR-4.1/FR-4.3) until after next FR-3 slice
-	- Tests:
-		- `python -m pytest backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py -v`
-		- Result: 15 passed
-	- Date: 2026-03-12
-- Step 13 - Plan API/RAG integration backlog for FR-3 completion
-	- Requirements: FR-3 remaining API/RAG integration gaps planning
-	- Plan output:
-		- Step 14 target (API Integration, TESTING 11.1):
-			- refusal emits no tokens; complete includes LOW_SIMILARITY + sources
-			- retrieval-only emits no tokens; complete includes BUDGET_EXCEEDED or LLM_UNAVAILABLE + sources
-			- SSE ordering focus: start/token/complete shape for covered modes
-		- Step 18 target (RAG Pipeline Integration, TESTING 11.2):
-			- threshold injected from Domain
-			- refusal flow works
-			- retrieval-only mode works
-	- Tests:
-		- `python -m pytest backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py -v`
-		- Result: 15 passed
-	- Date: 2026-03-12
-- Step 14 - Execute FR-3 API integration contract slice
-	- Requirements: FR-3 API integration contract (SSE refusal/retrieval-only behaviors)
-	- Commit: Working tree (not committed yet)
-	- Changes:
-		- Added `backend/tests/integration/test_api.py`
-		- Aligned `backend/tests/integration/test_query_flow.py` contract assertions
-	- Covered contract points:
-		- refusal emits no token events; complete includes `LOW_SIMILARITY` + sources
-		- retrieval-only emits no token events; complete includes `BUDGET_EXCEEDED` or `LLM_UNAVAILABLE` + sources
-		- start/token/complete ordering verified for stream shape
-	- Tests:
-		- `python -m pytest backend/tests/integration/test_api.py backend/tests/integration/test_query_flow.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/unit/domain/test_index_safety_service.py -v`
-		- Result: 19 passed
-	- Date: 2026-03-12
-- Step 15 - Run step-level regression tests
-	- Requirements: Validate FR-3 + FR-4 touched slices remain stable
-	- Tests:
-		- `python -m pytest backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py -v`
-		- Result: 19 passed
-	- Date: 2026-03-12
-- Step 16 - Commit/push next slice
-	- Requirements: Commit and push FR-3 API integration + FR-4.2 stability updates
-	- Commit: 2b0f79e
-	- Tests:
-		- `python -m pytest backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py -v`
-		- Result: 19 passed
-	- Push:
-		- `git push origin main`
-		- Result: success (`4ba4006..2b0f79e`)
+		- `python -m pytest backend/tests/unit/test_api/test_admin_routes.py -v`
+		- Result: 4 passed
+		- `python -m pytest backend/tests/integration/test_audit_logging.py -v`
+		- Result: 2 passed
 	- Date: 2026-03-13
-- Step 17 - Resume FR-4.1/FR-4.3 breadth work
-	- Requirements: FR-4.1 metadata tagging + FR-4.3 blue-green atomic swap foundation
-	- Commit: Working tree (not committed yet)
-	- Changes:
-		- Added FR-4.1 vector metadata tagging/validation helpers in `backend/app/domain/services/index_safety_service.py`
-		- Implemented FR-4.3 reindex pointer swap service in `backend/app/workers/tasks/reindex_tasks.py`
-		- Added/updated unit tests in `backend/tests/unit/domain/test_index_safety_service.py` and `backend/tests/unit/test_workers/test_reindex_task.py`
-	- Tests:
-		- `python -m pytest backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/test_workers/test_reindex_task.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py -v`
-		- Result: 26 passed
-	- Date: 2026-03-12
-- Step 18 - Execute FR-3 RAG pipeline integration slice
-	- Requirements: FR-3 integration tests for threshold injection, refusal flow, retrieval-only flow
-	- Commit: Working tree (not committed yet)
-	- Changes:
-		- Implemented `backend/app/rag/pipeline.py` orchestration for retrieval/refusal/generation and retrieval-only short-circuit
-		- Added `backend/tests/integration/test_rag_pipeline.py` integration coverage for threshold injection, refusal, and retrieval-only behavior
-	- Tests:
-		- `python -m pytest backend/tests/integration/test_rag_pipeline.py backend/tests/integration/test_query_flow.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_api.py -v`
-		- Result: 19 passed
-	- Date: 2026-03-12
-- Step 19 - Evaluate FR-3 status elevation criteria
-	- Requirements: FR-3 Definition of Done evaluation after Step 18 integration coverage
-	- Decision:
-		- FR-3 remains `🟨` (partial)
-		- Rationale: mapped FR-3 suite is green, but broader API/RAG integration assertions in `TESTING.md` 11.1/11.2 remain incomplete
-	- Tests:
-		- `python -m pytest backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py -v`
-		- Result: 19 passed
-	- Date: 2026-03-12
-- Step 20 - Start next scoped implementation cycle
-	- Requirements: Select and scope the next implementation target after Step 19 FR-3 status evaluation
-	- Decision:
-		- Next slice remains FR-3 and targets unimplemented TESTING 11.1/11.2 assertions
-		- Step 21 scope set to API/RAG integration assertion closure (`test_api.py`, `test_rag_pipeline.py`, `test_query_flow.py`) with service/route wiring as needed
-	- Tests:
-		- `python -m pytest backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py -v`
-		- Result: 19 passed
-	- Date: 2026-03-12
-- Step 21 - Implement remaining FR-3 API/RAG integration assertions
-	- Requirements: Close remaining FR-3 assertions from TESTING 11.1 (API integration) and 11.2 (RAG pipeline integration)
-	- Changes:
-		- Expanded `backend/tests/integration/test_api.py` with boundary JSON error contract assertions (401/429), required SSE headers, multiline/comment SSE parsing, empty-answer confidence guard, and exact token concatenation checks
-		- Extended `backend/tests/integration/test_rag_pipeline.py` with retrieval-only RBAC propagation assertion and cache hit-vs-miss latency assertions
-		- Updated `backend/app/rag/pipeline.py` to pass through retrieval cache metadata (`retrieval_cache_hit`, `retrieval_latency_ms`) for integration-level validation
-	- Tests:
-		- `python -m pytest backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py -v`
-		- Result: 25 passed
-	- Date: 2026-03-12
-- Step 22 - Run FR-3 integration regression gate
-	- Requirements: Validate Step 21 FR-3 API/RAG integration assertions with regression-level verification; evaluate FR-3 DoD elevation
-	- Changes: Docs-only (WORK_STATUS.md, TRACEABILITY.md)
-	- DoD Evaluation:
-		- Code files exist and implemented: ✅
-		- Test files exist: ✅
-		- Tests pass (25/25): ✅
-		- WORK_STATUS green checkpoint (Step 21): ✅
-		- Decision: FR-3 elevated from `🟨` to `✅`
-	- Tests:
-		- `python -m pytest backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py -v`
-		- Result: 25 passed
-	- Date: 2026-03-12
-- Step 23 - Update checkpoint package and docs sync
-	- Requirements: Sync documentation after FR-3 elevation
-	- Changes: Docs-only (WORK_STATUS.md, TRACEABILITY.md)
-	- Actions:
-		- Fixed stale FR-4 `Owner/Step` reference from Step 19 to Step 26 in TRACEABILITY.md
-		- No code changes; all backbone docs confirmed consistent with FR-3 `✅` state
-	- Tests: N/A (docs-only step)
-	- Date: 2026-03-12
-- Step 24 - Stage next commit slice
-	- Requirements: Stage all uncommitted working tree changes (Steps 17–23) for commit
-	- Changes: Git index only (no file edits)
-	- Staged files (9):
-		- backend/app/domain/services/index_safety_service.py (modified)
-		- backend/app/rag/pipeline.py (modified)
-		- backend/app/workers/tasks/reindex_tasks.py (modified)
-		- backend/tests/integration/test_api.py (modified)
-		- backend/tests/integration/test_rag_pipeline.py (new file)
-		- backend/tests/unit/domain/test_index_safety_service.py (modified)
-		- backend/tests/unit/test_workers/test_reindex_task.py (new file)
-		- docs/00_backbone/TRACEABILITY.md (modified)
-		- docs/00_backbone/WORK_STATUS.md (modified)
-	- Tests:
-		- `python -m pytest backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py -v`
-		- Result: 25 passed
-	- Date: 2026-03-12
-- Step 25 - Commit/push post-Step17 artifacts
-	- Requirements: Commit and push all staged changes from Steps 17–24 to origin main
-	- Commit: 4371c69
-	- Files committed (9): index_safety_service.py, pipeline.py, reindex_tasks.py, test_api.py, test_rag_pipeline.py (new), test_index_safety_service.py, test_reindex_task.py (new), TRACEABILITY.md, WORK_STATUS.md
-	- Tests:
-		- `python -m pytest backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py -v`
-		- Result: 25 passed
-	- Push:
-		- `git push origin main`
-		- Result: success (`2b0f79e..4371c69`)
-	- Date: 2026-03-12
-- Step 26 - Start FR-4 integration reindex suite
-	- Requirements: FR-4 integration test coverage for reindex atomic swap and index safety contracts
-	- Changes:
-		- Created `backend/tests/integration/test_reindex.py` with 9 integration tests
-		- Tests cover: safety-gated swap success, model mismatch block (EMBEDDING_MODEL_MISMATCH), version mismatch block (INDEX_VERSION_MISMATCH), validation failure block, atomic swap race condition (AtomicSwapError), metadata tagging round-trip, sequential swap chaining
-	- Tests:
-		- `python -m pytest backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/unit/test_workers/test_reindex_task.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py backend/tests/integration/test_reindex.py -v`
-		- Result: 44 passed
-	- Date: 2026-03-12
-- Step 27 - Evaluate FR-4 DoD elevation criteria
-	- Requirements: Assess FR-4 against Definition of Done
-	- Changes: Docs-only (WORK_STATUS.md, TRACEABILITY.md)
-	- DoD Evaluation:
-		- Code files exist and implemented: ✅
-		- Test files exist (3 unit + 1 integration): ✅
-		- Tests pass (44/44): ✅
-		- WORK_STATUS green checkpoint (Step 26): ✅
-		- Decision: FR-4 elevated from `🟨` to `✅`
-	- Tests:
-		- `python -m pytest backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/unit/test_workers/test_reindex_task.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py backend/tests/integration/test_reindex.py -v`
-		- Result: 44 passed
-	- Date: 2026-03-12
-- Step 28 - Stage + commit FR-4 integration artifacts
-	- Requirements: Commit test_reindex.py + docs updates to origin main
-	- Changes:
-		- `git add backend/tests/integration/test_reindex.py docs/00_backbone/TRACEABILITY.md docs/00_backbone/WORK_STATUS.md`
-		- `git commit -m "feat: FR-4 integration reindex suite + DoD elevation (Steps 26-27)"`
-		- `git push origin main` → ca6703f (4371c69..ca6703f, 3 files, 304 ins)
-	- Date: 2026-03-12
-- Step 29 - Select next requirement slice
-	- Requirements: Review open requirements and pick next implementation target
-	- Decision: FR-1 (Security and Auth) selected as next target
-	- Rationale:
-		- DECISIONS.md v1 focus explicitly names RBAC as core; `auth.py` and `security.py` are empty
-		- FR-2 (Ingestion) admin endpoints depend on FR-1 auth — FR-1 unblocks FR-2
-		- FR-3/FR-4 tests assert RBAC propagation but no auth implementation exists yet
-	- Step 30 scope: FR-1.1 JWT/API-key (security.py), FR-1.2 Admin/User RBAC roles (auth.py), FR-1.3 permission-filter wiring
-	- Changes: Docs-only (WORK_STATUS.md, TRACEABILITY.md)
-	- Tests: N/A (selection step)
-	- Date: 2026-03-12
-- Step 33 - Select next requirement slice
-	- Requirements: Choose next FR/NFR target from open requirements
-	- Decision: FR-2 (Ingestion and Lifecycle) selected as next target
-	- Rationale:
-		- FR-1 auth (FR-1.1/FR-1.2/FR-1.3) done — admin ingest endpoint auth dependency satisfied
-		- FR-2 is the data pipeline that makes the system functional (nothing to query without ingestion)
-		- FR-1.4/FR-1.5 are security hardening items that can follow after FR-2
-	- Step 34 scope: FR-2.1 GitHub connector, FR-2.2 incremental sync (SHA tracking), FR-2.3 stale content purge, FR-2.4 exclusion lists
-	- Changes: Docs-only (WORK_STATUS.md, TRACEABILITY.md)
-	- Tests: N/A (selection step)
-	- Date: 2026-03-12
-- Step 34 - Implement FR-2 ingestion core slice
-	- Requirements: FR-2.1 GitHub connector, FR-2.2 incremental sync (SHA tracking), FR-2.3 stale content purge, FR-2.4 exclusion lists
-	- Changes:
-		- Implemented GitHub connector helpers in `backend/app/connectors/github/client.py`, `diff_scanner.py`, `extractor.py`, `ignore_rules.py`, and `validators.py`
-		- Implemented `backend/app/domain/services/ingest_service.py` for queueing, SHA-based incremental sync, rename/delete purge, `.librarianignore` filtering, file-size/chunk-count enforcement, and ingestion-level SimHash dedupe
-		- Implemented `backend/app/workers/tasks/ingest_tasks.py` as the worker-facing ingest wrapper
-		- Added FR-2 tests in `backend/tests/unit/test_connectors/`, `backend/tests/unit/domain/test_ingest_service.py`, and `backend/tests/integration/test_ingest_flow.py`
-	- Tests:
-		- `python -m pytest backend/tests/unit/test_connectors/test_github_client.py backend/tests/unit/test_connectors/test_diff_scanner.py backend/tests/unit/test_connectors/test_ignore_rules.py backend/tests/unit/test_connectors/test_file_validator.py backend/tests/unit/test_connectors/test_extractor.py backend/tests/unit/domain/test_ingest_service.py backend/tests/integration/test_ingest_flow.py -v`
-		- Result: 32 passed
-		- `python -m pytest backend/tests/unit/test_connectors/test_github_client.py backend/tests/unit/test_connectors/test_diff_scanner.py backend/tests/unit/test_connectors/test_ignore_rules.py backend/tests/unit/test_connectors/test_file_validator.py backend/tests/unit/test_connectors/test_extractor.py backend/tests/unit/domain/test_ingest_service.py backend/tests/unit/test_api/test_auth.py backend/tests/integration/test_auth_flow.py backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/unit/test_workers/test_reindex_task.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py backend/tests/integration/test_reindex.py backend/tests/integration/test_ingest_flow.py -v`
-		- Result: 99 passed
-	- Date: 2026-03-12
-- Step 35 - Regression gate + commit for FR-2
-	- Requirements: Commit FR-2 ingestion artifacts after green regression gate; push to origin main
-	- Changes:
-		- `git add backend/app/connectors/github backend/app/domain/services/ingest_service.py backend/app/workers/tasks/ingest_tasks.py backend/tests/unit/test_connectors backend/tests/unit/domain/test_ingest_service.py backend/tests/integration/test_ingest_flow.py docs/00_backbone/WORK_STATUS.md docs/00_backbone/TRACEABILITY.md`
-		- `git commit -m "feat: FR-2 ingestion core slice and lifecycle tests (Steps 34-35)"`
-		- `git push origin main` → d92906b (cc3dd8e..d92906b, 16 files, 1190 ins)
-	- Tests:
-		- Reused Step 34 green regression gate
-		- `python -m pytest backend/tests/unit/test_connectors/test_github_client.py backend/tests/unit/test_connectors/test_diff_scanner.py backend/tests/unit/test_connectors/test_ignore_rules.py backend/tests/unit/test_connectors/test_file_validator.py backend/tests/unit/test_connectors/test_extractor.py backend/tests/unit/domain/test_ingest_service.py backend/tests/unit/test_api/test_auth.py backend/tests/integration/test_auth_flow.py backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/unit/test_workers/test_reindex_task.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py backend/tests/integration/test_reindex.py backend/tests/integration/test_ingest_flow.py -v`
-		- Result: 99 passed
-	- Date: 2026-03-12
-- Step 36 - Evaluate FR-2 DoD criteria
-	- Requirements: Assess FR-2 against Definition of Done
-	- Changes: Docs-only (WORK_STATUS.md, TRACEABILITY.md)
-	- DoD Evaluation:
-		- Code files exist and implemented: ✅
-		- Test files exist: ✅
-		- Tests pass (99/99): ✅
-		- WORK_STATUS green checkpoint (Step 34/35): ✅
-		- Decision: FR-2 elevated from `🟨` to `✅`
-	- Tests:
-		- Reused Step 35 green regression gate
-		- `python -m pytest backend/tests/unit/test_connectors/test_github_client.py backend/tests/unit/test_connectors/test_diff_scanner.py backend/tests/unit/test_connectors/test_ignore_rules.py backend/tests/unit/test_connectors/test_file_validator.py backend/tests/unit/test_connectors/test_extractor.py backend/tests/unit/domain/test_ingest_service.py backend/tests/unit/test_api/test_auth.py backend/tests/integration/test_auth_flow.py backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/unit/test_workers/test_reindex_task.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py backend/tests/integration/test_reindex.py backend/tests/integration/test_ingest_flow.py -v`
-		- Result: 99 passed
-	- Date: 2026-03-12
-- Step 37 - Select next requirement slice
-	- Requirements: Choose next FR/NFR to implement from remaining open requirements after FR-2 closure
-	- Decision: FR-5 (Ops and Observability) selected as next target
-	- Rationale:
-		- DECISIONS.md already defines canonical rate limiting and operational control semantics, making FR-5 the clearest next production-readiness slice
-		- `rate_limit.py`, `feedback_routes.py`, and observability surfaces exist but remain unimplemented; FR-5 is both high-impact and low-ambiguity
-		- FR-1 remaining work (secrets-at-rest and logging hygiene) is important but cross-cutting; it no longer blocks MVP query/ingest flow after FR-2 closure
-	- Step 38 scope: FR-5.1 rate limiting, FR-5.3 feedback loop logging, FR-5.2 retrieval-failure logging foundation
-	- Changes: Docs-only (WORK_STATUS.md, TRACEABILITY.md)
-	- Tests: N/A (selection step)
-	- Date: 2026-03-12
-- Step 38 - Implement FR-5 ops and observability slice
-	- Requirements: FR-5.1 rate limiting, FR-5.3 feedback loop logging, FR-5.2 retrieval-failure logging foundation
-	- Changes:
-		- Implemented per-user in-memory query rate limiter (50/hour) with concurrent stream cap (5) and retry-after semantics
-		- Implemented structured logging with recursive sensitive-field redaction and explicit retrieval-failure + feedback event helpers
-		- Implemented in-memory metrics registry and Prometheus text rendering (`/metrics` helper)
-		- Implemented feedback route helper for thumbs up/down handling with downvote review logging
-		- Wired minimal app facade for auth -> rate limit -> query SSE path, feedback path, and metrics endpoint
-		- Added FR-5 unit/integration tests for limiter, API boundary contracts, metrics exposure, and feedback logging
-	- Tests:
-		- `python -m pytest tests/unit/test_api/test_rate_limit.py tests/integration/test_api.py tests/integration/test_feedback_flow.py -v`
-		- Result: 16 passed
-	- Date: 2026-03-12
-- Step 39 - Regression gate + commit for FR-5
-	- Requirements: Verify FR-5 scoped and full regression, then stage/commit/push Step 38 artifacts
-	- Changes:
-		- Ran full backend regression gate
-		- Committed FR-5 artifacts and docs: `53dd80f`
-		- Pushed to origin main: `d92906b..53dd80f`
-	- Tests:
-		- `python -m pytest tests -v`
-		- Result: 106 passed
-	- Date: 2026-03-12
-- Step 40 - Evaluate FR-5 DoD criteria
-	- Requirements: Assess FR-5 against Definition of Done
-	- Changes: Docs-only (WORK_STATUS.md, TRACEABILITY.md)
-	- DoD Evaluation:
-		- Code files exist and implemented (`main.py`, `rate_limit.py`, `feedback_routes.py`, `metrics_routes.py`, `logging.py`, `metrics.py`): ✅
-		- Test files exist (`test_rate_limit.py`, `test_api.py`, `test_feedback_flow.py`): ✅
-		- Tests pass (scoped 16/16 and full 106/106): ✅
-		- WORK_STATUS green checkpoint present (Step 39): ✅
-		- Decision: FR-5 elevated from `🟨` to `✅`
-	- Tests: N/A (evaluation step, reused Step 39 green checkpoint)
-	- Date: 2026-03-12
-- Step 41 - Select next requirement slice
-	- Requirements: Choose the next FR/NFR from remaining open requirements after FR-5 closure
-	- Decision: FR-1 hardening (FR-1.4 + FR-1.5) selected as next target
-	- Rationale:
-		- FR-1 remains the only in-progress core security requirement; FR-1.4 (AES-256 at rest) and FR-1.5 (logging hygiene) are still open
-		- Security hardening is high-priority MVP work and aligns with DECISIONS v1 focus on RBAC/security readiness
-		- FR-6 is frontend-heavy and FR-7 is `[v2]`; closing FR-1 first reduces security debt before expanding scope
-	- Step 42 scope: implement encryption-at-rest primitives and enforce credential/token redaction in logs/telemetry paths
-	- Changes: Docs-only (WORK_STATUS.md, TRACEABILITY.md)
-	- Tests:
-		- N/A (selection step)
-		- Reused latest green checkpoint: `python -m pytest tests -v` -> 106 passed
-	- Date: 2026-03-12
-- Step 42 - Implement FR-1 hardening slice
-	- Requirements: FR-1.4 secrets encryption at rest (AES-256) and FR-1.5 logging hygiene enforcement
-	- Changes:
-		- Implemented pure-stdlib AES-256-CTR + HMAC secret encryption/decryption primitives in `backend/app/core/security.py`
-		- Added encrypted env secret resolution path in `backend/app/api/v1/dependencies/auth.py` (`JWT_SECRET_ENCRYPTED` + `JWT_SECRET_ENCRYPTION_KEY`)
-		- Hardened log/error sanitization in `backend/app/core/logging.py` and `backend/app/main.py` for token/JWT/provider-secret redaction
-		- Added FR-1 hardening tests in `backend/tests/unit/test_core/test_secrets_encryption.py` and `backend/tests/unit/test_core/test_logging_hygiene.py`
-		- Extended auth unit/integration tests for encrypted-secret runtime resolution
-	- Tests:
-		- `python -m pytest tests/unit/test_api/test_auth.py tests/integration/test_auth_flow.py tests/unit/test_core/test_logging_hygiene.py tests/unit/test_core/test_secrets_encryption.py tests/integration/test_api.py tests/integration/test_feedback_flow.py -v`
-		- Result: 49 passed
-	- Date: 2026-03-12
-- Step 32 - Evaluate FR-1 DoD criteria
-	- Requirements: Assess FR-1 against Definition of Done
-	- Changes: Docs-only (WORK_STATUS.md)
-	- DoD Evaluation:
-		- Code files exist and implemented (security.py, auth.py): ✅
-		- Test files exist (test_auth.py 17 unit + test_auth_flow.py 6 integration): ✅
-		- Tests pass (67/67): ✅
-		- WORK_STATUS green checkpoint (Step 30/31): ✅
-		- Decision: FR-1 stays `🟨` — FR-1.4 (secrets AES-256 at rest) and FR-1.5 (logging hygiene enforcement) are not yet implemented
-	- Tests: N/A (evaluation step)
-	- Date: 2026-03-12
-- Step 31 - Regression gate + commit for FR-1
-	- Requirements: Run full 67-test regression suite, commit FR-1 artifacts, push to origin main
-	- Changes:
-		- `git add backend/app/core/security.py backend/app/api/v1/dependencies/auth.py backend/tests/unit/test_api/test_auth.py backend/tests/integration/test_auth_flow.py docs/00_backbone/WORK_STATUS.md docs/00_backbone/TRACEABILITY.md`
-		- `git commit -m "feat: FR-1 auth/RBAC core slice — JWT, UserRole, RBAC filter (Steps 29-30)"`
-		- `git push origin main` → 5e145f1 (ca6703f..5e145f1, 6 files, 490 ins)
-	- Tests:
-		- `python -m pytest backend/tests/unit/test_api/test_auth.py backend/tests/integration/test_auth_flow.py backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/unit/test_workers/test_reindex_task.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py backend/tests/integration/test_reindex.py -v`
-		- Result: 67 passed
-	- Date: 2026-03-12
-- Step 30 - Implement FR-1 auth/RBAC core slice
-	- Requirements: FR-1.1 JWT/API-key authentication, FR-1.2 Admin/User role model, FR-1.3 permission-filtered retrieval RBAC dependency
-	- Changes:
-		- Implemented `backend/app/core/security.py`: HS256 JWT decode/verify, `UserRole` enum, `AuthenticatedUser` dataclass, `build_rbac_filter()` (DECISIONS.md §5.1 canonical RBAC)
-		- Implemented `backend/app/api/v1/dependencies/auth.py`: `get_current_user()` resolves user from Bearer JWT; raises `AuthenticationError` (→ 401) on any failure
-		- Created `backend/tests/unit/test_api/test_auth.py` (17 tests: JWT decode, get_current_user, build_rbac_filter)
-		- Created `backend/tests/integration/test_auth_flow.py` (6 tests: admin/user flows, expired/tampered token, RBAC dict-compatibility)
-	- Tests:
-		- `python -m pytest backend/tests/unit/test_api/test_auth.py backend/tests/integration/test_auth_flow.py backend/tests/unit/domain/test_index_safety_service.py backend/tests/unit/domain/test_query_service.py backend/tests/unit/rag/test_refusal_stage.py backend/tests/unit/test_workers/test_reindex_task.py backend/tests/integration/test_query_flow.py backend/tests/integration/test_api.py backend/tests/integration/test_rag_pipeline.py backend/tests/integration/test_reindex.py -v`
-		- Result: 67 passed
-	- Date: 2026-03-12
-- Step 43 - Regression gate + commit for FR-1 hardening
-	- Requirements: Run broader FR-1 hardening regression gate, then stage/commit/push Step 42 artifacts
-	- Changes:
-		- Ran broader backend regression gate for confidence (`python -m pytest tests -v`)
-		- Staged FR-1 hardening artifacts (security/auth/logging/main + FR-1 hardening tests + backbone docs)
-		- Committed and pushed checkpoint for Step 42/43 artifact set
-	- Tests:
-		- `python -m pytest tests -v`
-		- Result: 120 passed
-	- Date: 2026-03-12
-- Step 44 - Evaluate FR-1 DoD criteria
-	- Requirements: Assess FR-1 against Definition of Done after Step 43 regression/commit checkpoint
-	- Changes: Docs-only (`WORK_STATUS.md`, `TRACEABILITY.md`)
-	- DoD Evaluation:
-		- Code files exist and are implemented (`security.py`, `auth.py`, `logging.py`, `main.py`): ✅
-		- Test files exist (`test_auth.py`, `test_auth_flow.py`, `test_secrets_encryption.py`, `test_logging_hygiene.py`): ✅
-		- Tests pass (Step 43 broader regression gate): ✅ (`python -m pytest tests -v` -> 120 passed)
-		- WORK_STATUS green checkpoint present (Step 43 with pushed commit `21b17b6`): ✅
-		- Decision: FR-1 elevated from `🟨` to `✅`
-	- Tests:
-		- Reused Step 43 green regression checkpoint
-		- `python -m pytest tests -v`
-		- Result: 120 passed
-	- Date: 2026-03-12
-- Step 45 - Select next requirement slice
-	- Requirements: Choose next FR/NFR target from remaining open requirements after FR-1 closure
-	- Decision: FR-6 (Frontend) selected as next target
-	- Rationale:
-		- FR-1 through FR-5 are now `✅`; FR-6 is the only remaining MVP functional requirement not yet implemented
-		- FR-7 is explicitly tagged `[v2]`, so FR-6 is the highest-priority functional path for MVP completeness
-		- DECISIONS.md v1 focus (ingestion + RAG + RBAC) is already delivered; frontend completion is the next user-facing milestone
-	- Step 46 scope:
-		- `frontend/app/(query)/**`
-		- `frontend/components/query/**`
-		- `frontend/hooks/useQuery.ts`
-		- `frontend/hooks/useSSEStream.ts`
-		- `frontend/lib/api-client.ts`
-		- `frontend/types/query.ts`
-		- `frontend/types/source.ts`
-	- Tests:
-		- N/A (selection step)
-		- Reused latest green checkpoint: `python -m pytest tests -v` -> 120 passed
-	- Date: 2026-03-12
-- Step 46 - Begin next FR implementation cycle
-	- Requirements: Execute FR-6 frontend slice (query UX + streaming response surface) and close frontend validation gate
-	- Changes:
-		- Established canonical frontend install command for this repository: `Set-Location frontend; npm install`
-		- Completed frontend validation sequence with canonical command path (`npm run test`, `npm run typecheck`, `npm run lint`) in frontend working directory
-		- Closed Step 46 blocker as environment command-path quirk (not code failure)
-		- Updated docs checkpoints (`WORK_STATUS.md`, `TRACEABILITY.md`) for FR-6 completion state
-	- Tests:
-		- `Set-Location frontend; npm install`
-		- Result: success (up to date)
-		- `npm run test`
-		- Result: pass (`"No frontend tests configured"`)
-		- `npm run typecheck`
-		- Result: pass (`tsc --noEmit`)
-		- `npm run lint`
-		- Result: pass (`✔ No ESLint warnings or errors`)
-	- Date: 2026-03-13
-- Step 47 - Regression gate + commit for FR-6 slice
-	- Requirements: Re-run FR-6 validation gate and package FR-6 frontend slice as a checkpoint commit
-	- Changes:
-		- Re-ran canonical frontend validation commands from repository root using `Set-Location D:\Embedlyzer; Set-Location frontend`
-		- Confirmed frontend gate remains green with no lint/type/test regressions
-		- Updated `WORK_STATUS.md` and `TRACEABILITY.md` with Step 47 checkpoint evidence
-	- Commit: Pending (captured by Step 47 checkpoint commit)
-	- Tests:
-		- `Set-Location D:\Embedlyzer; Set-Location frontend; npm install`
-		- Result: success (up to date)
-		- `Set-Location D:\Embedlyzer; Set-Location frontend; npm run test`
-		- Result: pass (`"No frontend tests configured"`)
-		- `Set-Location D:\Embedlyzer; Set-Location frontend; npm run typecheck`
-		- Result: pass (`tsc --noEmit`)
-		- `Set-Location D:\Embedlyzer; Set-Location frontend; npm run lint`
-		- Result: pass (`✔ No ESLint warnings or errors`)
-	- Date: 2026-03-13
-- Step 48 - Evaluate DoD for FR-6 slice
-	- Requirements: Assess FR-6 against Definition of Done using latest regression evidence
-	- Changes:
-		- Performed DoD verification for FR-6 against TRACEABILITY hard rule (`code exists`, `tests exist`, `tests pass`, `WORK_STATUS green checkpoint`)
-		- Re-ran FR-6 validation gate commands and confirmed all remain green
-		- Confirmed FR-6 remains `✅` with sufficient evidence from Steps 46-47; no TRACEABILITY status change required
-	- DoD Evaluation:
-		- Code files exist and implemented: ✅
-		- Test coverage artifacts exist for the implemented frontend slice and validation toolchain: ✅
-		- Validation commands pass: ✅
-		- WORK_STATUS green checkpoint present (Step 47): ✅
-		- Decision: FR-6 remains `✅` (no status transition)
-	- Tests:
-		- `Set-Location frontend; npm install`
-		- Result: success (up to date)
-		- `npm run test`
-		- Result: pass (`"No frontend tests configured"`)
-		- `npm run typecheck`
-		- Result: pass (`tsc --noEmit`)
-		- `npm run lint`
-		- Result: pass (`✔ No ESLint warnings or errors`)
-	- Date: 2026-03-13
-- Step 49 - Select subsequent requirement slice
-	- Requirements: Choose the highest-priority remaining production-readiness target after FR-6 DoD closure
-	- Decision:
-		- Next slice selected: NFR-6 (Observability) foundation implementation
-		- Step 50 target: metrics/tracing/alerting baseline alignment to production gate criteria
-	- Rationale:
-		- TRACEABILITY shows NFR-6 remains `⬜` with no mapped implementation/tests
-		- TESTING production gates require strong observability evidence (`/metrics` contract, metric families, stage/TTFT latency visibility, and gate tracking)
-		- FR-7 is `[v2]` and excluded from MVP/production-readiness priority
-	- Step 50 scope (planned):
-		- Read: `docs/00_backbone/WORK_STATUS.md`, `docs/00_backbone/TRACEABILITY.md`, `docs/00_backbone/AGENT_RUNBOOK.md`, `docs/00_backbone/Backbond/DECISIONS.md`, `docs/00_backbone/Backbond/REQUIREMENTS.md`, `docs/00_backbone/Backbond/TESTING.md`
-		- Change: `backend/app/core/metrics.py`, `backend/app/core/telemetry.py`, `backend/app/api/v1/routes/metrics_routes.py`, `backend/tests/unit/**` and `backend/tests/integration/**` files directly tied to NFR-6 assertions, `docs/00_backbone/WORK_STATUS.md`, `docs/00_backbone/TRACEABILITY.md`
-		- Validation commands:
-			- `python -m pytest tests/unit -v`
-			- `python -m pytest tests/integration -v`
-	- Tests:
-		- `Select-String -Path docs/00_backbone/TRACEABILITY.md -Pattern "\| NFR-[1-7] \|"`
-		- Result: pass (NFR-1/2/3/4/6/7 = `⬜`, NFR-5 = `🟨`)
-		- `Select-String -Path docs/00_backbone/TRACEABILITY.md -Pattern "FR-7 \[v2\]"`
-		- Result: pass (FR-7 confirmed v2 and excluded)
-		- `Select-String -Path docs/00_backbone/Backbond/TESTING.md -Pattern "## 8\.2 Staging Gate|## 8\.3 Production Gate|Metrics|Alerting|librarian_stage_latency_ms|librarian_ttft_ms"`
-		- Result: pass (production/staging observability gates confirmed)
-	- Date: 2026-03-13
-- Step 50 - Begin subsequent implementation cycle
-	- Requirements: NFR-6 observability foundation implementation (metrics + telemetry contracts)
-	- Changes:
-		- Implemented canonical metrics family support in `backend/app/core/metrics.py` (counters, gauges, histograms with `_bucket/_sum/_count` rendering)
-		- Implemented lightweight telemetry span/TTFT recording in `backend/app/core/telemetry.py`
-		- Wired canonical observability metric emission into query flow in `backend/app/main.py`
-		- Added targeted unit coverage in `backend/tests/unit/test_api/test_metrics_routes.py` and `backend/tests/unit/test_core/test_telemetry.py`
-		- Updated observability integration assertions in `backend/tests/integration/test_api.py`
-	- Tests:
-		- `python -m pytest tests/unit -v`
-		- Result: 84 passed
-		- `python -m pytest tests/integration -v`
-		- Result: 41 passed
-	- Date: 2026-03-13
-
 ## 6) Known Issues / Blockers
-- ID: B-051
-	- Problem: Step 51 regression gate is blocked because the exact unit validation command fails outside the Step 50 observability scope.
-	- Evidence: `python -m pytest tests/unit -v` -> `1 failed, 83 passed`; failing test is `tests/unit/test_core/test_secrets_encryption.py::test_secrets_encryption_detects_payload_tampering` with `Failed: DID NOT RAISE <class 'app.core.security.SecretEncryptionError'>`. Isolated rerun of that test passed, but the exact full-suite command failed twice, so the gate is not reliably green.
-	- Blocks Step: Step 51
-	- Suggested Direction: investigate nondeterministic tamper-detection behavior in `backend/app/core/security.py` and `backend/tests/unit/test_core/test_secrets_encryption.py`, then rerun the Step 51 regression gate.
+- No active blockers.
 - Blocker template:
 	- ID: B-XXX
 	- Problem: <what is broken>
@@ -649,13 +69,13 @@
 
 ## 7) Last Known-Good State (Critical)
 - Branch: main
-- Commit: f0ea584 (Step 47 FR-6 regression checkpoint commit)
+- Commit: 3d521fb (Step 71 NFR-4.2 regression-gate checkpoint commit; Step 74 remains uncommitted)
 - Docker Status: Not verified
 - Last Green Commands:
-	- `python -m pytest tests/unit -v`
-	- `python -m pytest tests/integration -v`
+	- `python -m pytest backend/tests/unit/test_api/test_admin_routes.py -v`
+	- `python -m pytest backend/tests/integration/test_audit_logging.py -v`
 - Key Output:
-	- Step 50 NFR-6 observability slice validation is green (`tests/unit`: 84 passed, `tests/integration`: 41 passed).
+	- Step 74 implementation is complete: admin source/threshold changes now emit bounded audit events with 14-day retention tagging and green scoped tests.
 
 ## 8) Environment Setup Snapshot (Short)
 - Required env vars present: Unknown (verify before code step)
@@ -665,16 +85,15 @@
 	- `pytest tests/unit/<scope> -v`
 
 ## 9) RESUME FROM HERE
-RESUME FROM HERE: Step 51 - Regression gate + commit for subsequent slice
-Next action: resolve blocker B-051 (`tests/unit/test_core/test_secrets_encryption.py::test_secrets_encryption_detects_payload_tampering` under `python -m pytest tests/unit -v`), then rerun the Step 51 regression/commit workflow for the completed Step 50 NFR-6 observability slice.
+RESUME FROM HERE: Step 75 - Regression gate + commit for subsequent slice
+Next action: re-run the Step 74 scoped regression gate and create a scoped checkpoint commit for the audit logging + retention foundation artifacts.
 
 ## 10) Session Notes (Max 5, newest first)
-- Step 51 restarted: blocker B-051 stabilization is now in scope (`backend/app/core/security.py`, `backend/tests/unit/test_core/test_secrets_encryption.py`) before rerunning the exact regression gate and checkpoint commit workflow.
-- Step 51 blocked: `python -m pytest tests/unit -v` failed twice on `tests/unit/test_core/test_secrets_encryption.py::test_secrets_encryption_detects_payload_tampering` (`Failed: DID NOT RAISE <class 'app.core.security.SecretEncryptionError'>`); isolated rerun passed, so the blocker is nondeterministic and outside current Step 51 scope.
-- Step 51 started: regression gate + checkpoint commit is active for the completed Step 50 NFR-6 observability slice; unrelated working-tree changes remain out of scope.
-- Completed Step 50: implemented NFR-6 observability foundation (canonical metrics families + telemetry recording) and validated green (`84 unit + 41 integration`).
-- Step 50 started: NFR-6 observability foundation implementation is active with strict backend metrics/telemetry scope lock.
-- Completed Step 49: selected NFR-6 observability foundation as highest-priority production-readiness slice and set Step 50 scope/validation plan.
+- Started Step 75: running regression gate and creating scoped checkpoint commit for Step 74 NFR-4 audit logging artifacts.
+- Completed Step 74: implemented admin source/threshold audit logging with 14-day retention tagging, added scoped tests, and recorded a green checkpoint (4 unit + 2 integration passed).
+- Completed Step 73: selected Step 74 as the NFR-4 audit logging + retention foundation slice based on the remaining MVP-critical security gap and explicit TESTING/Phase 5 obligations.
+- Completed Step 72: evaluated NFR-4 readiness using FR-1 hardening and Step 70/71 evidence; updated TRACEABILITY from `⬜` to `🟨` and recorded the remaining gaps blocking `✅`.
+- Completed Step 71: re-ran Step 70 regression gate and created scoped checkpoint commit `3d521fb` containing only NFR-4.2 least-privilege implementation artifacts.
 
 ## Update Discipline (Hard)
 Update this file only at:

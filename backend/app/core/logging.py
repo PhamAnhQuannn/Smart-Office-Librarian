@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 REDACTED = "***REDACTED***"
+AUDIT_LOG_RETENTION_DAYS = 14
 _SENSITIVE_KEYWORDS = (
 	"authorization",
 	"token",
@@ -22,6 +23,8 @@ _SENSITIVE_KEYWORDS = (
 _BEARER_TOKEN_PATTERN = re.compile(r"(?i)bearer\s+[A-Za-z0-9._\-+/=]+")
 _JWT_PATTERN = re.compile(r"\b[A-Za-z0-9_-]{3,}\.[A-Za-z0-9_-]{3,}\.[A-Za-z0-9_-]{3,}\b")
 _PROVIDER_TOKEN_PATTERN = re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9]{10,}|sk-[A-Za-z0-9]{10,})\b")
+_AUDIT_RESOURCE_TYPES = {"source", "threshold"}
+_AUDIT_ACTIONS = {"created", "updated", "deleted"}
 
 
 def _is_sensitive_key(key: str) -> bool:
@@ -54,6 +57,12 @@ def sanitize_log_data(value: Any) -> Any:
 def safe_error_message(message: str) -> str:
 	"""Redact credentials/tokens before exposing messages externally."""
 	return _sanitize_text(message)
+
+
+def _serialize_role(role: Any) -> str:
+	if hasattr(role, "value"):
+		return str(role.value)
+	return str(role).lower()
 
 
 @dataclass(frozen=True)
@@ -116,4 +125,30 @@ class InMemoryStructuredLogger:
 			vote=vote,
 			comment=comment,
 			metadata=metadata or {},
+		)
+
+	def log_admin_audit_event(
+		self,
+		*,
+		actor_id: str,
+		actor_role: Any,
+		resource_type: str,
+		action: str,
+		resource_id: str,
+		changes: dict[str, Any] | None = None,
+	) -> LogEntry:
+		if resource_type not in _AUDIT_RESOURCE_TYPES:
+			raise ValueError(f"Unsupported audit resource_type: {resource_type}")
+		if action not in _AUDIT_ACTIONS:
+			raise ValueError(f"Unsupported audit action: {action}")
+
+		return self.emit(
+			f"audit.{resource_type}.{action}",
+			actor_id=actor_id,
+			actor_role=_serialize_role(actor_role),
+			resource_type=resource_type,
+			action=action,
+			resource_id=resource_id,
+			changes=changes or {},
+			retention_days=AUDIT_LOG_RETENTION_DAYS,
 		)
