@@ -4,7 +4,7 @@
 **Project:** Smart Office Librarian  
 **Version:** v1.6  
 **Status:** Performance Baseline Specification  
-**Last Updated:** 2026-03-11  
+**Last Updated:** 2026-03-13  
 **Compliance:** REQUIREMENTS.md v1.5 (NFR-1.x, NFR-2.x), CAPACITY.md v1.6, TESTING.md v1.2, DECISIONS.md v1.5, CI_CD.md v1.3, OBSERVABILITY.md v1.3
 
 > This document defines baseline performance metrics, Golden Question evaluation criteria, and environment-specific acceptance thresholds for the Smart Office Librarian RAG system. It is **normative** unless explicitly marked **informative**.
@@ -25,6 +25,29 @@ Baselines establish **expected normal performance** under defined conditions. Th
 - **Environment-Specific:** dev/staging/prod have different targets  
 - **Version-Controlled:** baselines updated with system changes  
 - **Evidence-Based:** supported by actual measurements, not estimates  
+
+## Step 62 Checkpoint (2026-03-13)
+
+Step 62 establishes an executable NFR-1 performance baseline harness and records
+deterministic benchmark evidence for p95, retrieval, and TTFT fields.
+
+Commands run:
+- `python evaluation/scripts/run_pqs.py`
+- `python evaluation/scripts/analyze_failures.py`
+
+Generated artifacts:
+- `evaluation/results/pqs_summary.json`
+- `evaluation/results/pqs_analysis.json`
+
+Checkpoint aggregate values (deterministic scaffold run):
+- `e2e_p95_ms`: `1869.0`
+- `retrieval_p95_ms`: `489.0`
+- `ttft_p95_ms`: `492.0`
+- Threshold evaluation status: `PASS`
+
+Notes:
+- This checkpoint validates the benchmark harness wiring and reporting format.
+- Production readiness still requires live-environment benchmark runs and trend evidence.
 
 ---
 
