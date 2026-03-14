@@ -120,3 +120,31 @@ def update_threshold_configuration(
         "threshold": threshold,
         "audit_retention_days": AUDIT_LOG_RETENTION_DAYS,
     }
+
+
+def update_role_assignment(
+    target_user_id: str,
+    new_role: str,
+    *,
+    actor: Any,
+    logger: InMemoryStructuredLogger,
+) -> dict[str, Any]:
+    """Emit an audit event when an admin assigns a role to a user."""
+    actor_id, actor_role = _require_admin(actor)
+    changes = {
+        "target_user_id": target_user_id,
+        "new_role": new_role,
+    }
+    logger.log_admin_audit_event(
+        actor_id=actor_id,
+        actor_role=actor_role,
+        resource_type="role",
+        action="assigned",
+        resource_id=target_user_id,
+        changes=changes,
+    )
+    return {
+        "target_user_id": target_user_id,
+        "new_role": new_role,
+        "audit_retention_days": AUDIT_LOG_RETENTION_DAYS,
+    }

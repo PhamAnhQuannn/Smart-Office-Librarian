@@ -23,8 +23,8 @@ _SENSITIVE_KEYWORDS = (
 _BEARER_TOKEN_PATTERN = re.compile(r"(?i)bearer\s+[A-Za-z0-9._\-+/=]+")
 _JWT_PATTERN = re.compile(r"\b[A-Za-z0-9_-]{3,}\.[A-Za-z0-9_-]{3,}\.[A-Za-z0-9_-]{3,}\b")
 _PROVIDER_TOKEN_PATTERN = re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9]{10,}|sk-[A-Za-z0-9]{10,})\b")
-_AUDIT_RESOURCE_TYPES = {"source", "threshold"}
-_AUDIT_ACTIONS = {"created", "updated", "deleted"}
+_AUDIT_RESOURCE_TYPES = {"source", "threshold", "role"}
+_AUDIT_ACTIONS = {"created", "updated", "deleted", "assigned"}
 
 
 def _is_sensitive_key(key: str) -> bool:

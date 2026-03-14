@@ -7,6 +7,7 @@ import pytest
 from app.api.v1.routes.admin_routes import (
     AdminRouteError,
     delete_source_configuration,
+    update_role_assignment,
     update_source_configuration,
     update_threshold_configuration,
 )
@@ -97,3 +98,39 @@ def test_delete_source_configuration_emits_delete_audit_entry() -> None:
     entry = logger.entries[-1]
     assert entry.event_type == "audit.source.deleted"
     assert entry.payload["changes"]["source_id"] == "source-999"
+
+
+def test_update_role_assignment_rejects_non_admin_actor() -> None:
+    logger = InMemoryStructuredLogger()
+    non_admin = SimpleNamespace(user_id="user-1", role="user")
+
+    with pytest.raises(AdminRouteError) as exc_info:
+        update_role_assignment(
+            "user-2",
+            "admin",
+            actor=non_admin,
+            logger=logger,
+        )
+
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.error_code == "FORBIDDEN"
+
+
+def test_update_role_assignment_emits_role_audit_entry() -> None:
+    logger = InMemoryStructuredLogger()
+    result = update_role_assignment(
+        "user-42",
+        "admin",
+        actor=_admin_actor(),
+        logger=logger,
+    )
+
+    assert result["target_user_id"] == "user-42"
+    assert result["new_role"] == "admin"
+    assert result["audit_retention_days"] == AUDIT_LOG_RETENTION_DAYS
+    entry = logger.entries[-1]
+    assert entry.event_type == "audit.role.assigned"
+    assert entry.payload["actor_id"] == "admin-1"
+    assert entry.payload["resource_id"] == "user-42"
+    assert entry.payload["changes"]["new_role"] == "admin"
+    assert entry.payload["retention_days"] == AUDIT_LOG_RETENTION_DAYS
