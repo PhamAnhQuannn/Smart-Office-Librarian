@@ -13,6 +13,7 @@ from app.connectors.github.client import (
     GitHubClient,
     GitHubNotFoundError,
     GitHubRateLimitError,
+    GitHubScopeError,
 )
 
 
@@ -71,6 +72,59 @@ def test_github_client_sends_scoped_bearer_token_auth() -> None:
 
     assert transport.last_headers is not None
     assert transport.last_headers["Authorization"] == "Bearer scoped-token"
+
+
+def test_github_client_allows_read_scoped_token_for_allowed_repo() -> None:
+    transport = _Transport()
+    client = GitHubClient(
+        transport,
+        token="scoped-token",
+        token_scopes=["repo:read"],
+        allowed_repositories=["acme/docs"],
+    )
+
+    entries = client.list_repo_tree(repo="acme/docs", ref="main")
+
+    assert len(entries) == 1
+
+
+def test_github_client_rejects_missing_read_scope() -> None:
+    transport = _Transport()
+    client = GitHubClient(
+        transport,
+        token="scoped-token",
+        token_scopes=["metadata:read"],
+        allowed_repositories=["acme/docs"],
+    )
+
+    with pytest.raises(GitHubScopeError, match="required read scope"):
+        client.list_repo_tree(repo="acme/docs", ref="main")
+
+
+def test_github_client_rejects_over_privileged_scope() -> None:
+    transport = _Transport()
+    client = GitHubClient(
+        transport,
+        token="scoped-token",
+        token_scopes=["repo:read", "admin:org"],
+        allowed_repositories=["acme/docs"],
+    )
+
+    with pytest.raises(GitHubScopeError, match="over-privileged"):
+        client.list_repo_tree(repo="acme/docs", ref="main")
+
+
+def test_github_client_rejects_repo_outside_allowlist() -> None:
+    transport = _Transport()
+    client = GitHubClient(
+        transport,
+        token="scoped-token",
+        token_scopes=["repo:read"],
+        allowed_repositories=["acme/docs"],
+    )
+
+    with pytest.raises(GitHubScopeError, match="Repository access denied"):
+        client.list_repo_tree(repo="acme/other", ref="main")
 
 
 def test_github_client_maps_rate_limit_response() -> None:

@@ -35,6 +35,10 @@ class GitHubRateLimitError(GitHubClientError):
 	"""Raised when GitHub signals a rate-limit response."""
 
 
+class GitHubScopeError(GitHubClientError):
+	"""Raised when token scope or repository access violates least-privilege policy."""
+
+
 class GitHubTransport(Protocol):
 	def get_repo_tree(self, *, repo: str, ref: str, headers: dict[str, str]) -> dict[str, Any]:
 		...
@@ -46,9 +50,26 @@ class GitHubTransport(Protocol):
 class GitHubClient:
 	"""Thin adapter over an injected GitHub transport."""
 
-	def __init__(self, transport: GitHubTransport, *, token: str) -> None:
+	_ALLOWED_READ_SCOPES = frozenset({"repo", "repo:read", "contents:read"})
+	_FORBIDDEN_SCOPES = frozenset({"repo:write", "contents:write", "admin:org", "delete_repo"})
+
+	def __init__(
+		self,
+		transport: GitHubTransport,
+		*,
+		token: str,
+		token_scopes: list[str] | tuple[str, ...] | None = None,
+		allowed_repositories: list[str] | tuple[str, ...] | None = None,
+	) -> None:
 		self._transport = transport
 		self._token = token
+		self._token_scopes = self._normalize_values(token_scopes)
+		self._allowed_repositories = self._normalize_values(allowed_repositories)
+
+	def _normalize_values(self, values: list[str] | tuple[str, ...] | None) -> set[str] | None:
+		if values is None:
+			return None
+		return {value.strip().lower() for value in values if value and value.strip()}
 
 	def _headers(self) -> dict[str, str]:
 		return {
@@ -63,7 +84,24 @@ class GitHubClient:
 		if status_code == 429:
 			raise GitHubRateLimitError("GitHub rate limit exceeded")
 
+	def _enforce_least_privilege(self, *, repo: str) -> None:
+		if self._allowed_repositories is not None and repo.lower() not in self._allowed_repositories:
+			raise GitHubScopeError(f"Repository access denied by least-privilege policy: {repo}")
+
+		if self._token_scopes is None:
+			return
+
+		if self._token_scopes.isdisjoint(self._ALLOWED_READ_SCOPES):
+			raise GitHubScopeError("Token is missing a required read scope")
+
+		over_privileged_scopes = self._token_scopes.intersection(self._FORBIDDEN_SCOPES)
+		if over_privileged_scopes:
+			raise GitHubScopeError(
+				"Token has over-privileged scopes: " + ", ".join(sorted(over_privileged_scopes))
+			)
+
 	def list_repo_tree(self, *, repo: str, ref: str) -> list[GitHubTreeEntry]:
+		self._enforce_least_privilege(repo=repo)
 		payload = self._transport.get_repo_tree(repo=repo, ref=ref, headers=self._headers())
 		self._raise_for_error_payload(payload)
 
@@ -82,6 +120,7 @@ class GitHubClient:
 		return entries
 
 	def get_file_payload(self, *, repo: str, path: str, ref: str) -> GitHubFilePayload:
+		self._enforce_least_privilege(repo=repo)
 		payload = self._transport.get_file_contents(
 			repo=repo,
 			path=path,
