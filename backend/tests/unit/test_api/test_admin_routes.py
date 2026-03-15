@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
+import json
 from types import SimpleNamespace
 
 import pytest
 
+from app.api.v1.dependencies.auth import get_current_user
 from app.api.v1.routes.admin_routes import (
     AdminRouteError,
     delete_source_configuration,
@@ -11,11 +16,28 @@ from app.api.v1.routes.admin_routes import (
     update_source_configuration,
     update_threshold_configuration,
 )
-from app.core.logging import AUDIT_LOG_RETENTION_DAYS, InMemoryStructuredLogger, REDACTED
+from app.core.logging import (
+    AUDIT_LOG_RETENTION_DAYS,
+    InMemoryStructuredLogger,
+    REDACTED,
+    _AUDIT_MAX_CHANGES,
+    _AUDIT_MAX_TEXT_LENGTH,
+)
 
 
 def _admin_actor() -> SimpleNamespace:
     return SimpleNamespace(user_id="admin-1", role="admin")
+
+
+def _make_jwt(payload: dict[str, object], *, secret: str = "step74-jwt-secret") -> str:
+    def _b64url(data: bytes) -> str:
+        return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
+
+    header = _b64url(json.dumps({"alg": "HS256", "typ": "JWT"}).encode())
+    payload_b64 = _b64url(json.dumps(payload).encode())
+    signing_input = f"{header}.{payload_b64}".encode()
+    sig = hmac.new(secret.encode(), signing_input, hashlib.sha256).digest()
+    return f"{header}.{payload_b64}.{_b64url(sig)}"
 
 
 def test_update_source_configuration_rejects_non_admin_actor() -> None:
@@ -84,6 +106,51 @@ def test_update_threshold_configuration_validates_range_and_logs() -> None:
     entry = logger.entries[-1]
     assert entry.event_type == "audit.threshold.updated"
     assert entry.payload["resource_id"] == "prod:1"
+
+
+def test_update_threshold_configuration_uses_actor_from_auth_dependency() -> None:
+    token = _make_jwt({"sub": "admin-claims-7", "role": "admin"})
+    actor = get_current_user(f"Bearer {token}", jwt_secret="step74-jwt-secret")
+
+    logger = InMemoryStructuredLogger()
+    update_threshold_configuration(
+        namespace="prod",
+        index_version=1,
+        threshold=0.71,
+        actor=actor,
+        logger=logger,
+    )
+
+    entry = logger.entries[-1]
+    assert entry.event_type == "audit.threshold.updated"
+    assert entry.payload["actor_id"] == "admin-claims-7"
+    assert entry.payload["actor_role"] == "admin"
+
+
+def test_update_source_configuration_bounded_audit_structure() -> None:
+    logger = InMemoryStructuredLogger()
+    oversized_updates = {
+        "very_long_value": "x" * (_AUDIT_MAX_TEXT_LENGTH + 50),
+        "nested": {
+            "items": [str(index) for index in range(25)],
+            "token": "ghp_sensitive_token_value",
+        },
+    }
+    oversized_updates.update({f"key_{index}": f"v{index}" for index in range(_AUDIT_MAX_CHANGES + 7)})
+
+    update_source_configuration(
+        "source-bounded",
+        oversized_updates,
+        actor=_admin_actor(),
+        logger=logger,
+    )
+
+    entry = logger.entries[-1]
+    changes = entry.payload["changes"]
+    assert len(changes) == _AUDIT_MAX_CHANGES
+    assert len(changes["very_long_value"]) == _AUDIT_MAX_TEXT_LENGTH
+    assert isinstance(changes["nested"]["items"], list)
+    assert len(changes["nested"]["items"]) <= 10
 
 
 def test_delete_source_configuration_emits_delete_audit_entry() -> None:
