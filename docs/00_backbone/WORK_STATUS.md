@@ -48,14 +48,14 @@
 
 ## 6) Last Known-Good State (Critical)
 - Branch: main
-- Commit: f67b54743822de0267e5279ffc873b998bda17f7
+- Commit: 09405f4aa97dcd7c80497862b94dabbe954ca6fa
 - Docker Status: Not verified
 - Last Green Commands:
   - python -m pytest backend/tests/unit/test_api/test_admin_routes.py -v -> 8 passed in 0.04s
   - python -m pytest backend/tests/integration/test_audit_logging.py -v -> 4 passed in 0.03s
 - Key Output:
   - Step 74: checkpoint commit created for bounded admin audit logging + retention documentation slice
-  - Step 75: scoped regression gate replay passed on 2026-03-15 and checkpoint pushed to origin/main (f67b547)
+  - Step 75: scoped regression gate replay passed on 2026-03-15 and checkpoint pushed to origin/main (09405f4)
 
 ## 7) RESUME FROM HERE
 RESUME FROM HERE: Step 76.
@@ -64,7 +64,7 @@ Next action: start the Step 76 scoped workflow from WORK_STATUS.
 ## 8) Latest Checkpoint Summary
 - Completed step: Step 75 - Regression gate + commit for the Step 74 slice (replay validation #3)
 - Requirement/checklist covered: scoped regression pass re-confirmed and replay checkpoint persisted
-- Commit hash: f67b54743822de0267e5279ffc873b998bda17f7
+- Commit hash: 09405f4aa97dcd7c80497862b94dabbe954ca6fa
 - Validation commands/results:
   - python -m pytest backend/tests/unit/test_api/test_admin_routes.py -v -> 8 passed in 0.04s
   - python -m pytest backend/tests/integration/test_audit_logging.py -v -> 4 passed in 0.03s
