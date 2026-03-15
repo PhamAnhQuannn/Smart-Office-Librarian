@@ -62,8 +62,8 @@ RESUME FROM HERE: Step 76.
 Next action: start the Step 76 scoped workflow from WORK_STATUS.
 
 ## 8) Latest Checkpoint Summary
-- Completed step: Step 75 - Regression gate + commit for the Step 74 slice
-- Requirement/checklist covered: scoped regression pass, staged Step 74 artifacts, checkpoint commit, and push
+- Completed step: Step 75 - Regression gate + commit for the Step 74 slice (replay validation)
+- Requirement/checklist covered: scoped regression pass re-confirmed; Step 74 checkpoint remains committed and pushed
 - Commit hash: 607959c968b866908dfe99bcaa6febab429a8ff1
 - Validation commands/results:
   - python -m pytest backend/tests/unit/test_api/test_admin_routes.py -v -> 8 passed in 0.04s
