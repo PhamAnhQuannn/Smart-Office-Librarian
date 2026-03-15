@@ -4,7 +4,7 @@
 - Project: Smart Office Librarian (Embedlyzer)
 - Architecture Version: v1.5
 - Status: Production ready
-- Last Updated: 2026-03-14 UTC
+- Last Updated: 2026-03-15 UTC
 - Owner: Engineering Team
 
 ## 1) Current Step (Single Source of Truth)
@@ -55,7 +55,7 @@
   - python -m pytest backend/tests/integration/test_audit_logging.py -v -> 4 passed in 0.03s
 - Key Output:
   - Step 74: checkpoint commit created for bounded admin audit logging + retention documentation slice
-  - Step 75: scoped regression gate passed and checkpoint pushed to origin/main
+  - Step 75: scoped regression gate replay passed on 2026-03-15 and checkpoint pushed to origin/main
 
 ## 7) RESUME FROM HERE
 RESUME FROM HERE: Step 76.
@@ -68,4 +68,4 @@ Next action: start the Step 76 scoped workflow from WORK_STATUS.
 - Validation commands/results:
   - python -m pytest backend/tests/unit/test_api/test_admin_routes.py -v -> 8 passed in 0.04s
   - python -m pytest backend/tests/integration/test_audit_logging.py -v -> 4 passed in 0.03s
-- Date: 2026-03-14
+- Date: 2026-03-15
