@@ -62,7 +62,7 @@ RESUME FROM HERE: Step 76.
 Next action: start the Step 76 scoped workflow from WORK_STATUS.
 
 ## 8) Latest Checkpoint Summary
-- Completed step: Step 75 - Regression gate + commit for the Step 74 slice (replay validation #8)
+- Completed step: Step 75 - Regression gate + commit for the Step 74 slice (replay validation #9)
 - Requirement/checklist covered: scoped regression pass re-confirmed and replay checkpoint persisted
 - Commit hash: d85079453789d95baab0738ba5ebc967405eff81
 - Validation commands/results:
