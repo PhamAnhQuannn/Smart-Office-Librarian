@@ -1,0 +1,46 @@
+services:
+	postgres:
+		image: postgres:15-alpine
+		environment:
+			POSTGRES_DB: embedlyzer_test
+			POSTGRES_USER: postgres
+			POSTGRES_PASSWORD: postgres
+		tmpfs:
+			- /var/lib/postgresql/data
+		healthcheck:
+			test: ["CMD-SHELL", "pg_isready -U postgres -d embedlyzer_test"]
+			interval: 5s
+			timeout: 3s
+			retries: 12
+
+	redis:
+		image: redis:7-alpine
+		command: ["redis-server", "--save", "", "--appendonly", "no"]
+		healthcheck:
+			test: ["CMD", "redis-cli", "ping"]
+			interval: 5s
+			timeout: 3s
+			retries: 12
+
+	integration-tests:
+		build:
+			context: ../..
+			dockerfile: infra/docker/Dockerfile.api
+		environment:
+			APP_ENV: test
+			DB_HOST: postgres
+			DB_PORT: "5432"
+			DB_NAME: embedlyzer_test
+			DB_USER: postgres
+			DB_PASSWORD: postgres
+			REDIS_HOST: redis
+			REDIS_PORT: "6379"
+		depends_on:
+			postgres:
+				condition: service_healthy
+			redis:
+				condition: service_healthy
+		command: >-
+			pytest backend/tests/integration/test_audit_logging.py
+			backend/tests/integration/test_http_app.py
+			backend/tests/integration/test_data_retention.py -v

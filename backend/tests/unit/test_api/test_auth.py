@@ -101,6 +101,21 @@ def test_get_current_user_extracts_user_id_and_admin_role() -> None:
     assert user.user_id == "admin-42"
     assert user.role == UserRole.ADMIN
     assert user.is_admin is True
+    # workspace fields default to empty when not in JWT
+    assert user.workspace_id == ""
+    assert user.workspace_slug == ""
+
+
+def test_get_current_user_extracts_workspace_claims() -> None:
+    token = _make_jwt({
+        "sub": "user-99",
+        "role": "user",
+        "workspace_id": "ws-abc-123",
+        "workspace_slug": "ws-myteam",
+    })
+    user = get_current_user(f"Bearer {token}", jwt_secret=_SECRET)
+    assert user.workspace_id == "ws-abc-123"
+    assert user.workspace_slug == "ws-myteam"
 
 
 def test_get_current_user_extracts_user_role() -> None:

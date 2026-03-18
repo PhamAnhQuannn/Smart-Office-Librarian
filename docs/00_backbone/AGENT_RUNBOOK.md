@@ -51,6 +51,16 @@ Conflict rule:
 - Each session targets exactly one requirement or sub-requirement.
 - No multi-feature sessions.
 
+### 3.5 Live Product Remediation Mode (Mandatory When Active)
+- If `docs/00_backbone/LIVE_PRODUCT_MISSING_WORK_2026-03-15.txt` exists and is active, step order MUST come from that file.
+- Agents MUST execute open items in listed order: P0 -> P1 -> P2.
+- Agents MUST maintain progress in `docs/00_backbone/LIVE_PRODUCT_EXECUTION_TRACKER.md`.
+- For each completed item, agents MUST update all three documents in the same checkpoint:
+	- `docs/00_backbone/LIVE_PRODUCT_EXECUTION_TRACKER.md`
+	- `docs/00_backbone/LIVE_PRODUCT_MISSING_WORK_2026-03-15.txt`
+	- `docs/00_backbone/WORK_STATUS.md`
+- If implemented code/doc state conflicts with tracker status, code/doc state is authoritative and tracker files must be reconciled immediately.
+
 ## 4) Working Unit Definition (Step Size)
 A valid step is one of:
 - One service/module

@@ -1,10 +1,13 @@
-"""Minimal backend app facade used by the current integration suites."""
+"""Backend app facade and FastAPI application factory."""
 
 from __future__ import annotations
 
 import json
 import uuid
 from typing import Any
+
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 
 from app.api.v1.dependencies.auth import get_current_user
 from app.api.v1.dependencies.rate_limit import (
@@ -26,6 +29,7 @@ from app.core.metrics import (
 	InMemoryMetricsRegistry,
 )
 from app.core.security import AuthenticatedUser, AuthenticationError
+from app.domain.services.health_service import HealthService
 
 
 def _sse_headers() -> dict[str, str]:
@@ -303,3 +307,47 @@ def release_query_lease(response: dict[str, Any]) -> None:
 	lease = response.get("lease")
 	if isinstance(lease, RateLimitLease):
 		lease.release()
+
+
+def create_app(
+	*,
+	embedlyzer: "EmbedlyzerApp | None" = None,
+	health_service: "HealthService | None" = None,
+	jwt_secret: str | None = None,
+) -> FastAPI:
+	from app.api.v1.dependencies.settings import build_error_response, create_default_health_service
+	from app.api.v1.router import api_router, ops_router
+
+	application = FastAPI(title="Embedlyzer API", version="0.1.0")
+	application.state.embedlyzer = embedlyzer or EmbedlyzerApp()
+	application.state.health_service = health_service or create_default_health_service()
+	application.state.ingest_jobs = {}
+	application.state.jwt_secret = jwt_secret  # None → env fallback in auth.py
+	application.include_router(api_router, prefix="/api/v1")
+	application.include_router(ops_router)
+
+	@application.exception_handler(AuthenticationError)
+	async def handle_authentication_error(_: Request, exc: AuthenticationError):
+		return build_error_response(
+			status_code=401,
+			error_code=exc.error_code,
+			message=str(exc),
+		)
+
+	@application.exception_handler(RequestValidationError)
+	async def handle_validation_error(_: Request, exc: RequestValidationError):
+		return build_error_response(
+			status_code=400,
+			error_code="VALIDATION_ERROR",
+			message="Invalid request payload",
+			details={"errors": exc.errors()},
+		)
+
+	@application.get("/")
+	async def root() -> dict[str, str]:
+		return {"status": "ok"}
+
+	return application
+
+
+app = create_app()

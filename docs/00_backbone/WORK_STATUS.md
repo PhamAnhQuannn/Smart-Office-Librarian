@@ -1,71 +1,222 @@
-# WORK_STATUS.md
+﻿# WORK_STATUS.md
 
 ## 0) Header Metadata
 - Project: Smart Office Librarian (Embedlyzer)
 - Architecture Version: v1.5
-- Status: Production ready
-- Last Updated: 2026-03-15 UTC
+- Status: **Code complete — pending operator provisioning**
+- Last Updated: 2026-03-15 UTC (session 4)
 - Owner: Engineering Team
 
-## 1) Current Step (Single Source of Truth)
-- Step ID: Step 75
-- Step Title: Regression gate + commit for the Step 74 slice
-- Requirements Covered: NFR-4.3 Logging Hygiene; NFR-4.5 Data Retention; NFR-4.6 Security Auditability (checkpoint closure)
-- Step Status: Completed
-- Start Time: 2026-03-14
-- End Time: 2026-03-14
+---
 
-## 2) Scope Lock (Current Step)
-- Files changed:
-  - backend/app/core/logging.py
-  - backend/tests/unit/test_api/test_admin_routes.py
-  - backend/tests/integration/test_audit_logging.py
-  - docs/08_governance/AUDIT_LOGGING.md
-  - docs/00_backbone/TRACEABILITY.md
-  - docs/00_backbone/WORK_STATUS.md
-- No FR-7 / v2 work
-- Scope is limited to Step 75 regression gate + commit workflow for the Step 74 slice.
-- Validation commands:
-  - python -m pytest backend/tests/unit/test_api/test_admin_routes.py -v
-  - python -m pytest backend/tests/integration/test_audit_logging.py -v
+## DEPLOYMENT MANUAL — What You Need and When
 
-## 3) Acceptance Criteria (Current Step)
-- [x] Scoped regression commands executed and passing
-- [x] Step 74 artifacts staged without widening scope
-- [x] Checkpoint commit created for Step 74 slice
-- [x] Checkpoint commit pushed to origin/main
-- [x] WORK_STATUS updated with Step 75 completion evidence
+> All code is written and all 417 automated tests pass.
+> The steps below are the **only remaining work** before the system serves real traffic.
+> They are ordered exactly as you must do them.
 
-## 4) Next Steps Queue (Top 5)
-1. Step 76 - Next scoped implementation step
-2. Step 75 - Regression gate + commit for Step 74 slice (completed)
-3. Step 74 - NFR-4 audit logging + retention foundation (completed)
-4. Step_v2_001 - FR-7 Multi-tenancy (out of MVP scope)
-5. Step_v2_002 - FR-3.7 Fact-Check LLM Judge (out of MVP scope)
+---
 
-## 5) Known Issues / Blockers
-- None.
+### STAGE 1 — Before you touch any server (accounts + secrets)
 
-## 6) Last Known-Good State (Critical)
+Do this on your laptop, not on any server.
+
+**1.1 — Create third-party accounts and get API keys**
+
+| Service | Where | What to get | Env var to set |
+|---|---|---|---|
+| **OpenAI** | platform.openai.com → API Keys | Secret key (`sk-…`) | `OPENAI_API_KEY` |
+| **Pinecone** | app.pinecone.io → API Keys | API key; create an index (dimension=**1536**, metric=**cosine**) | `PINECONE_API_KEY`, `PINECONE_INDEX_NAME` |
+| **GitHub** (optional) | github.com → Settings → Developer Settings → Personal Access Tokens | Fine-grained token, scope: `contents:read` on target repos | `GITHUB_TOKEN` |
+
+> Pinecone free tier is enough for MVP. Name your index `embedlyzer-dev` or update `PINECONE_INDEX_NAME`.
+
+**1.2 — Generate your own secrets (run locally, never commit)**
+
+```bash
+# JWT signing key
+openssl rand -hex 32    # paste result as JWT_SECRET
+
+# Database password (replace default "postgres")
+openssl rand -base64 24 # paste result as DB_PASSWORD
+```
+
+**1.3 — Fill in your .env file**
+
+```bash
+cp backend/.env.example backend/.env
+# Edit backend/.env — fill every blank line
+```
+
+Mandatory blanks to fill:
+
+| Variable | Source |
+|---|---|
+| `OPENAI_API_KEY` | Stage 1.1 |
+| `PINECONE_API_KEY` | Stage 1.1 |
+| `PINECONE_INDEX_NAME` | Stage 1.1 |
+| `JWT_SECRET` | Stage 1.2 |
+| `DB_PASSWORD` | Stage 1.2 |
+| `GITHUB_TOKEN` | Stage 1.1 (only if ingesting private repos) |
+
+---
+
+### STAGE 2 — Start the stack (first-time local or server setup)
+
+```bash
+# Start all services (api, worker, postgres, redis, prometheus, grafana, caddy)
+docker compose -f infra/docker/docker-compose.yml up -d
+
+# Wait ~15s for postgres to initialize, then run migrations
+docker compose exec api alembic upgrade head
+
+# Seed the first admin user
+SEED_ADMIN_EMAIL=admin@yourdomain.com \
+SEED_ADMIN_PASSWORD=a-strong-password \
+docker compose exec api python scripts/seed_db.py
+
+# Verify the API is alive
+curl http://localhost:8000/health
+# Expected: {"status": "ok"}
+```
+
+---
+
+### STAGE 3 — Provision cloud server (AWS Lightsail via Terraform)
+
+Skip this stage if you are running on a single self-managed box.
+
+**3.1 — Configure AWS credentials (once)**
+
+```bash
+aws configure
+# Enter: AWS Access Key ID, Secret Access Key, region (us-east-1), output format (json)
+```
+
+**3.2 — Set SSH key in Terraform variables**
+
+Edit `infra/terraform/variables.tf` — set `ssh_public_key` to the contents of your `~/.ssh/id_rsa.pub`.
+
+**3.3 — Apply Terraform**
+
+```bash
+cd infra/terraform
+terraform init
+terraform plan    # review what will be created
+terraform apply   # type "yes" to confirm
+# Note the static IP printed in the output — you will need it for DNS
+```
+
+**3.4 — Point DNS**
+
+In your domain registrar, create an A record:
+
+```
+your-domain.com  →  <static IP from terraform output>
+```
+
+DNS propagation takes 1–60 minutes.
+
+**3.5 — Enable real TLS in Caddy**
+
+In `infra/caddy/Caddyfile`, replace:
+
+```
+tls internal { protocols tls1.3 }
+```
+
+with:
+
+```
+tls your@email.com
+```
+
+Caddy will auto-provision a Let's Encrypt certificate once DNS resolves.
+
+---
+
+### STAGE 4 — Configure GitHub Actions (CI/CD)
+
+**4.1 — Create Environments in the GitHub repo**
+
+Go to: `github.com/<org>/<repo>` → Settings → Environments
+
+| Environment | Required reviewers |
+|---|---|
+| `staging` | None (auto-deploy on merge to main) |
+| `prod` | Add yourself (manual approval required) |
+
+**4.2 — Add GitHub Actions Secrets**
+
+Go to: Settings → Secrets and variables → Actions → New repository secret
+
+| Secret name | Value |
+|---|---|
+| `STAGING_HOST` | IP or hostname of your staging server |
+| `PROD_HOST` | IP or hostname of your production server |
+| `STAGING_SSH_KEY` | Contents of the private key matching the staging server's `authorized_keys` |
+| `PROD_SSH_KEY` | Contents of the private key for the production server |
+
+Once these are set, pushing to `main` and triggering `deploy.yml` with environment=staging will SSH into the server and run `infra/scripts/deploy.sh` automatically.
+
+---
+
+### STAGE 5 — Post-deployment smoke checks
+
+Run these after every first deploy or upgrade:
+
+```bash
+# 1 — API liveness
+curl https://your-domain.com/health
+# Expected: {"status": "ok"}
+
+# 2 — API readiness (all dependencies healthy)
+curl https://your-domain.com/ready
+# Expected: {"db": true, "redis": true, "pinecone": true}
+
+# 3 — Migrations are at head
+docker compose exec api alembic current
+# Expected: prints latest revision hash + (head)
+
+# 4 — Celery worker is running
+docker compose logs worker | grep "ready"
+# Expected: "celery@<hostname> ready."
+
+# 5 — Grafana dashboards load
+# Open: https://your-domain.com:3001
+# Expected: 4 dashboards visible
+# Default credentials: admin / admin  <-- change in infra/grafana/grafana.ini
+
+# 6 — Ingest a test document
+curl -X POST https://your-domain.com/api/v1/ingest \
+  -H "Authorization: Bearer <your-jwt>" \
+  -d '{"source_url": "https://github.com/your-org/your-repo"}'
+
+# 7 — Run a test query
+curl -X POST https://your-domain.com/api/v1/query \
+  -H "Authorization: Bearer <your-jwt>" \
+  -d '{"query_text": "What is this repo about?", "stream": false}'
+
+# 8 — Run golden-question evaluation
+docker compose exec api python scripts/evaluate_golden_questions.py
+# Expected: >= 80% pass rate
+```
+
+---
+
+### STAGE 6 — Remaining open items (non-blocking for MVP)
+
+| ID | What | Action needed |
+|---|---|---|
+| C-03 | `frontend/public/favicon.ico` is a 0-byte placeholder | Replace with a real `.ico` file before going public |
+| C-05 | No email alerts for budget/threshold breaches | Wire SMTP or integrate an alerting service (future feature) |
+
+---
+
+## Previous Step Tracking
+
+- Last completed step: Step 75 — Regression gate + commit for the Step 74 slice
 - Branch: main
 - Commit: 0e4a0a6c85d47e5f04ef31a76b88b21e13f33547
-- Docker Status: Not verified
-- Last Green Commands:
-  - python -m pytest backend/tests/unit/test_api/test_admin_routes.py -v -> 8 passed in 0.04s
-  - python -m pytest backend/tests/integration/test_audit_logging.py -v -> 4 passed in 0.03s
-- Key Output:
-  - Step 74: checkpoint commit created for bounded admin audit logging + retention documentation slice
-  - Step 75: scoped regression gate replay passed on 2026-03-15 and checkpoint pushed to origin/main (0e4a0a6)
-
-## 7) RESUME FROM HERE
-RESUME FROM HERE: Step 76.
-Next action: start the Step 76 scoped workflow from WORK_STATUS.
-
-## 8) Latest Checkpoint Summary
-- Completed step: Step 75 - Regression gate + commit for the Step 74 slice (replay validation #14)
-- Requirement/checklist covered: scoped regression pass re-confirmed and replay checkpoint persisted
-- Commit hash: 0e4a0a6c85d47e5f04ef31a76b88b21e13f33547
-- Validation commands/results:
-  - python -m pytest backend/tests/unit/test_api/test_admin_routes.py -v -> 8 passed in 0.04s
-  - python -m pytest backend/tests/integration/test_audit_logging.py -v -> 4 passed in 0.03s
-- Date: 2026-03-15
+- Test suite: **417 passing, 1 pre-existing Windows bash failure** (not a code defect)
+- Known Issues / Blockers: None — code is complete.

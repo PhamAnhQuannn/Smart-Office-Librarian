@@ -118,3 +118,28 @@ def test_auth_flow_supports_encrypted_runtime_jwt_secret(monkeypatch: pytest.Mon
     user = get_current_user(f"Bearer {token}")
     assert user.user_id == "enc-user"
     assert user.role == UserRole.USER
+
+
+def test_auth_flow_workspace_claims_propagated_to_authenticated_user() -> None:
+    """workspace_id and workspace_slug claims from the JWT are available on AuthenticatedUser."""
+    token = _make_jwt({
+        "sub": "ws-user-1",
+        "role": "user",
+        "workspace_id": "ws-abc-xyz-123",
+        "workspace_slug": "ws-acmecorp",
+        "exp": int(time.time()) + 600,
+    })
+    user = get_current_user(f"Bearer {token}", jwt_secret=_SECRET)
+
+    assert user.user_id == "ws-user-1"
+    assert user.workspace_id == "ws-abc-xyz-123"
+    assert user.workspace_slug == "ws-acmecorp"
+
+
+def test_auth_flow_workspace_claims_default_to_empty_string_when_absent() -> None:
+    """Legacy JWTs without workspace claims still resolve without error."""
+    token = _make_jwt({"sub": "legacy-user", "role": "user"})
+    user = get_current_user(f"Bearer {token}", jwt_secret=_SECRET)
+
+    assert user.workspace_id == ""
+    assert user.workspace_slug == ""

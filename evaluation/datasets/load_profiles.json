@@ -1,1 +1,18 @@
-[]
+[
+  {
+    "id": "baseline_light",
+    "qps": 2.0,
+    "duration_seconds": 120,
+    "base_e2e_ms": 1680.0,
+    "base_retrieval_ms": 410.0,
+    "base_ttft_ms": 420.0
+  },
+  {
+    "id": "baseline_medium",
+    "qps": 5.0,
+    "duration_seconds": 300,
+    "base_e2e_ms": 1780.0,
+    "base_retrieval_ms": 410.0,
+    "base_ttft_ms": 420.0
+  }
+]

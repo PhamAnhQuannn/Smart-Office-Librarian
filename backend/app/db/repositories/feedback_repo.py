@@ -1,4 +1,4 @@
-"""In-memory feedback repository with query-log based purge behavior."""
+"""Feedback repositories: in-memory (tests) + SQLAlchemy (production)."""
 
 from __future__ import annotations
 
@@ -42,3 +42,36 @@ class InMemoryFeedbackRepository:
 
 		self._records = kept
 		return purged
+
+
+# ─ SQLAlchemy-backed production repository ─────────────────────────────────────
+
+try:
+    from sqlalchemy import select
+    from sqlalchemy.orm import Session
+    from app.db.models import FeedbackModel
+    from app.db.repositories.base_repo import BaseRepository
+
+    class FeedbackRepository(BaseRepository["FeedbackModel"]):
+        model_class = FeedbackModel
+
+        def __init__(self, session: "Session") -> None:
+            super().__init__(session)
+
+        def create(self, *, query_log_id: str, vote: str, user_id: str | None = None,
+                   comment: str | None = None) -> "FeedbackModel":
+            fb = FeedbackModel(
+                query_log_id=query_log_id,
+                vote=vote,
+                user_id=user_id,
+                comment=comment,
+            )
+            return self.add(fb)
+
+        def list_by_query_log(self, query_log_id: str) -> list["FeedbackModel"]:
+            stmt = select(FeedbackModel).where(FeedbackModel.query_log_id == query_log_id)
+            return list(self._session.scalars(stmt))
+
+except ImportError:
+    pass  # SQLAlchemy not installed in this environment
+

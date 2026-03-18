@@ -1,0 +1,29 @@
+FROM node:20-alpine AS deps
+WORKDIR /app
+COPY frontend/package.json frontend/package-lock.json* ./
+RUN npm ci
+
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY frontend ./
+RUN npm run build
+
+FROM node:20-alpine AS runtime
+ENV NODE_ENV=production \
+	PORT=3101 \
+	HOSTNAME=0.0.0.0
+
+WORKDIR /app
+
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/scripts ./scripts
+
+RUN addgroup -S nextjs && adduser -S nextjs -G nextjs
+USER nextjs
+
+EXPOSE 3101
+
+CMD ["node", "scripts/start-standalone.mjs"]

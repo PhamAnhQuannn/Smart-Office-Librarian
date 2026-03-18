@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "id": "pqs-001",
+    "query": "What is the embedding model?",
+    "namespace": "default",
+    "expected_mode": "answer",
+    "notes": "Baseline smoke query; should always produce an answer with HIGH confidence"
+  },
+  {
+    "id": "pqs-002",
+    "query": "Explain the refusal policy",
+    "namespace": "default",
+    "expected_mode": "answer",
+    "notes": "Documentation query; should retrieve threshold configuration content"
+  }
+]

@@ -1,4 +1,4 @@
-"""In-memory query log repository with retention purge support."""
+"""Query log repositories: in-memory (tests) + SQLAlchemy (production)."""
 
 from __future__ import annotations
 
@@ -65,3 +65,56 @@ class InMemoryQueryLogsRepository:
 			skipped_evaluation_flagged=skipped_flagged,
 			cutoff_timestamp=cutoff,
 		)
+
+
+# ─ SQLAlchemy-backed production repository ─────────────────────────────────────
+
+try:
+    from typing import Any
+    from sqlalchemy import select as sa_select
+    from sqlalchemy.orm import Session
+    from app.db.models import QueryLogModel
+    from app.db.repositories.base_repo import BaseRepository
+
+    class QueryLogsRepository(BaseRepository["QueryLogModel"]):
+        model_class = QueryLogModel
+
+        def __init__(self, session: "Session") -> None:
+            super().__init__(session)
+
+        def create(self, *, user_id: str | None, query_text: str, mode: str,
+                   namespace: str, index_version: int, refusal_reason: str | None = None,
+                   confidence: str | None = None, primary_cosine_score: float | None = None,
+                   threshold: float | None = None, latency_ms: float | None = None,
+                   ttft_ms: float | None = None, prompt_tokens: int | None = None,
+                   completion_tokens: int | None = None,
+                   sources: "list[dict[str, Any]] | None" = None) -> "QueryLogModel":
+            log = QueryLogModel(
+                user_id=user_id,
+                query_text=query_text,
+                mode=mode,
+                namespace=namespace,
+                index_version=index_version,
+                refusal_reason=refusal_reason,
+                confidence=confidence,
+                primary_cosine_score=primary_cosine_score,
+                threshold=threshold,
+                latency_ms=latency_ms,
+                ttft_ms=ttft_ms,
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                sources=sources,
+            )
+            return self.add(log)
+
+        def list_by_user(self, user_id: str, *, limit: int = 50) -> "list[QueryLogModel]":
+            stmt = (
+                sa_select(QueryLogModel)
+                .where(QueryLogModel.user_id == user_id)
+                .order_by(QueryLogModel.created_at.desc())
+                .limit(limit)
+            )
+            return list(self._session.scalars(stmt))
+
+except ImportError:
+    pass  # SQLAlchemy not installed in this environment

@@ -1,72 +1,137 @@
+import { ChevronDown, ShieldCheck } from "lucide-react";
+import { useState } from "react";
 import type { ConfidenceLevel, QueryMode, RefusalReason } from "../../types/api";
 import type { SourceCitation } from "../../types/source";
 import { CitationPanel } from "./CitationPanel";
-import { ConfidenceBadge } from "./ConfidenceBadge";
 
 interface StreamingAnswerProps {
-	answer: string;
-	mode: QueryMode | null;
-	confidence: ConfidenceLevel | null;
-	refusalReason: RefusalReason | null;
-	sources: SourceCitation[];
-	isStreaming: boolean;
-	errorMessage: string | null;
+  answer: string;
+  mode: QueryMode | null;
+  confidence: ConfidenceLevel | null;
+  refusalReason: RefusalReason | null;
+  sources: SourceCitation[];
+  isStreaming: boolean;
+  errorMessage: string | null;
 }
 
 function refusalCopy(reason: RefusalReason | null): string {
-	if (reason === "LOW_SIMILARITY") {
-		return "The retrieved context is not similar enough to provide a reliable answer.";
-	}
+  if (reason === "LOW_SIMILARITY")  return "The retrieved context is not similar enough to provide a reliable answer.";
+  if (reason === "BUDGET_EXCEEDED") return "Monthly token budget exhausted. Showing top sources without generation.";
+  if (reason === "LLM_UNAVAILABLE") return "The language model is temporarily unavailable. Showing retrieved sources only.";
+  return "No answer could be generated for this request.";
+}
 
-	if (reason === "BUDGET_EXCEEDED") {
-		return "Context budget was exceeded. Showing top sources without generation.";
-	}
+function ConfidenceBanner({ confidence }: { confidence: ConfidenceLevel }): JSX.Element {
+  const styles: Record<ConfidenceLevel, { bg: string; label: string; hint: string }> = {
+    HIGH:   { bg: "bg-green-500",  label: "CONFIDENT",  hint: "Strong evidence found." },
+    MEDIUM: { bg: "bg-amber-500",  label: "UNCERTAIN",  hint: "Moderate evidence — verify sources." },
+    LOW:    { bg: "bg-rose-500",   label: "LOW CONFIDENCE", hint: "Weak evidence — treat with caution." },
+  };
+  const s = styles[confidence];
+  return (
+    <div className={`w-full py-3 px-6 rounded-t-2xl text-xs font-black uppercase tracking-[0.2em] flex items-center justify-between ${s.bg} text-white`}>
+      <div className="flex items-center gap-2">
+        <ShieldCheck size={14} />
+        {s.label}
+      </div>
+      <span className="opacity-80">{s.hint}</span>
+    </div>
+  );
+}
 
-	if (reason === "LLM_UNAVAILABLE") {
-		return "The LLM is temporarily unavailable. Showing retrieved sources only.";
-	}
+function SkeletonLoader(): JSX.Element {
+  return (
+    <div className="space-y-4 pt-2">
+      <div className="h-5 bg-slate-100 rounded-md w-1/4 animate-pulse" />
+      <div className="space-y-3">
+        <div className="h-4 bg-slate-50 rounded-md w-full animate-pulse" />
+        <div className="h-4 bg-slate-50 rounded-md w-5/6 animate-pulse" />
+        <div className="h-4 bg-slate-50 rounded-md w-4/6 animate-pulse" />
+        <div className="h-4 bg-slate-50 rounded-md w-full animate-pulse" />
+      </div>
+    </div>
+  );
+}
 
-	return "No answer could be generated for this request.";
+function CitationsSection({ sources }: { sources: SourceCitation[] }): JSX.Element {
+  const [open, setOpen] = useState(true);
+  return (
+    <div className="pt-6 border-t border-slate-200">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center justify-between w-full mb-5 group"
+      >
+        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">
+          Citations &amp; Evidence ({sources.length})
+        </p>
+        <ChevronDown
+          size={14}
+          className={`text-slate-400 transition-transform group-hover:text-slate-600 ${open ? "" : "-rotate-90"}`}
+        />
+      </button>
+      {open && <CitationPanel sources={sources} />}
+    </div>
+  );
 }
 
 export function StreamingAnswer({
-	answer,
-	mode,
-	confidence,
-	refusalReason,
-	sources,
-	isStreaming,
-	errorMessage,
+  answer,
+  mode,
+  confidence,
+  refusalReason,
+  sources,
+  isStreaming,
+  errorMessage,
 }: StreamingAnswerProps): JSX.Element {
-	return (
-		<section className="space-y-4 rounded-2xl border border-slate-300 bg-white/90 p-5 shadow-sm">
-			<header className="flex flex-wrap items-center justify-between gap-2">
-				<h2 className="text-base font-semibold text-slate-900">Answer Stream</h2>
-				<div className="flex items-center gap-2">
-					{confidence ? <ConfidenceBadge confidence={confidence} /> : null}
-					{isStreaming ? <span className="text-xs font-medium text-cyan-700">Streaming...</span> : null}
-				</div>
-			</header>
+  if (errorMessage) {
+    return (
+      <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-800">
+        {errorMessage}
+      </div>
+    );
+  }
 
-			{errorMessage ? (
-				<div className="rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800">{errorMessage}</div>
-			) : null}
+  if (isStreaming && !answer) {
+    return <SkeletonLoader />;
+  }
 
-			{mode === "answer" || (!mode && answer) ? (
-				<article className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-900 whitespace-pre-wrap">
-					{answer || (isStreaming ? "Waiting for first token..." : "No answer content returned.")}
-					{isStreaming ? <span className="ml-1 inline-block h-4 w-[2px] animate-pulse bg-cyan-700 align-middle" /> : null}
-				</article>
-			) : null}
+  const isRefusal = mode === "refusal" || mode === "retrieval_only";
 
-			{mode === "refusal" || mode === "retrieval_only" ? (
-				<article className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-					<p className="font-semibold">{mode === "refusal" ? "Refusal" : "Retrieval-only response"}</p>
-					<p className="mt-1">{refusalCopy(refusalReason)}</p>
-				</article>
-			) : null}
+  return (
+    <div className="space-y-0 rounded-2xl overflow-hidden border border-slate-100 shadow-sm">
+      {/* Confidence banner */}
+      {confidence && !isRefusal && <ConfidenceBanner confidence={confidence} />}
 
-			<CitationPanel sources={sources} />
-		</section>
-	);
+      {/* Refusal banner */}
+      {isRefusal && (
+        <div className="w-full py-3 px-6 bg-slate-500 text-white text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2">
+          <ShieldCheck size={14} />
+          {mode === "refusal" ? "REFUSAL" : "RETRIEVAL ONLY"}
+        </div>
+      )}
+
+      <div className="bg-slate-50 p-8 space-y-8">
+        {/* Refusal message */}
+        {isRefusal && (
+          <p className="text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+            {refusalCopy(refusalReason)}
+          </p>
+        )}
+
+        {/* Answer text */}
+        {(mode === "answer" || (!mode && answer)) && (
+          <div className="text-base leading-relaxed text-slate-800 font-normal whitespace-pre-wrap">
+            {answer}
+            {isStreaming && (
+              <span className="ml-1 inline-block h-4 w-0.5 bg-teal-500 animate-pulse align-middle" />
+            )}
+          </div>
+        )}
+
+        {sources.length > 0 && <CitationsSection sources={sources} />}
+      </div>
+    </div>
+  );
 }
+

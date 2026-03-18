@@ -52,6 +52,11 @@ class QueryService:
 		)
 
 	def execute(self, request: QueryRequest) -> Any:
+		# Validate that the query text is non-empty before any pipeline call
+		if not request.query_text or not request.query_text.strip():
+			from app.core.errors import ValidationError
+			raise ValidationError("query_text must not be blank")
+
 		self._validate_index_safety(request)
 
 		threshold = self._threshold_service.get_threshold(

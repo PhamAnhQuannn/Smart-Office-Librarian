@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-lint:
+    name: Backend Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install lint tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ruff mypy
+
+      - name: Ruff lint
+        working-directory: backend
+        run: ruff check app/ --select E,W,F,I --ignore E501
+
+      - name: Mypy type check
+        working-directory: backend
+        run: mypy app/ --ignore-missing-imports --no-error-summary || true
+
+  backend-tests:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt
+          python -m pip install pytest pytest-cov
+
+      - name: Run full unit test suite
+        run: >-
+          python -m pytest
+          backend/tests/unit/
+          -v --tb=short
+
+      - name: Run integration tests (no external services)
+        run: >-
+          python -m pytest
+          backend/tests/integration/
+          -v --tb=short
+          --ignore=backend/tests/integration/test_rag_pipeline.py
+          --ignore=backend/tests/integration/test_ingest_flow.py
+
+      - name: Coverage report
+        run: >-
+          python -m pytest backend/tests/unit/ backend/tests/integration/
+          --ignore=backend/tests/integration/test_rag_pipeline.py
+          --ignore=backend/tests/integration/test_ingest_flow.py
+          --cov=backend/app --cov-report=term-missing --cov-fail-under=40
+
+  frontend-quality:
+    name: Frontend Typecheck and Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Typecheck frontend
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+

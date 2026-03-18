@@ -1,1 +1,92 @@
-{}
+{
+  "title": "RAG Performance",
+  "description": "Query pipeline latency, TTFT, and throughput",
+  "uid": "embedlyzer-rag-perf",
+  "schemaVersion": 36,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Query E2E Latency (ms)",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "custom": { "lineWidth": 2 } },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        { "refId": "A", "expr": "job:librarian_query_duration_seconds:p50_5m * 1000", "legendFormat": "p50" },
+        { "refId": "B", "expr": "job:librarian_query_duration_seconds:p95_5m * 1000", "legendFormat": "p95" },
+        { "refId": "C", "expr": "job:librarian_query_duration_seconds:p99_5m * 1000", "legendFormat": "p99" }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Time-to-First-Token (ms)",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "custom": { "lineWidth": 2 } },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        { "refId": "A", "expr": "job:librarian_ttft_seconds:p50_5m * 1000", "legendFormat": "TTFT p50" },
+        { "refId": "B", "expr": "job:librarian_ttft_seconds:p95_5m * 1000", "legendFormat": "TTFT p95" }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Retrieval Latency (ms)",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "custom": { "lineWidth": 2 } },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        { "refId": "A", "expr": "job:librarian_retrieval_duration_seconds:p50_5m * 1000", "legendFormat": "p50" },
+        { "refId": "B", "expr": "job:librarian_retrieval_duration_seconds:p95_5m * 1000", "legendFormat": "p95" }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Query Throughput",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "custom": { "lineWidth": 2 } },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        { "refId": "A", "expr": "job:librarian_queries_total:rate5m", "legendFormat": "QPS ({{namespace}})" },
+        { "refId": "B", "expr": "job:librarian_active_streams:sum", "legendFormat": "Active SSE streams" }
+      ]
+    }
+  ]
+}

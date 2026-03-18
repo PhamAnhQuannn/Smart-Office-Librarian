@@ -1,1 +1,42 @@
-[]
+[
+  {
+    "id": "gq-001",
+    "question": "What embedding model does Embedlyzer use for document retrieval?",
+    "expected_answer_keywords": ["text-embedding-3-small", "openai"],
+    "namespace": "default",
+    "min_confidence": "HIGH",
+    "category": "architecture"
+  },
+  {
+    "id": "gq-002",
+    "question": "What is the default similarity threshold for answer refusal?",
+    "expected_answer_keywords": ["threshold", "refusal", "similarity"],
+    "namespace": "default",
+    "min_confidence": "MEDIUM",
+    "category": "configuration"
+  },
+  {
+    "id": "gq-003",
+    "question": "How does the ingestion pipeline detect duplicate document chunks?",
+    "expected_answer_keywords": ["simhash", "near-duplicate", "fingerprint"],
+    "namespace": "default",
+    "min_confidence": "MEDIUM",
+    "category": "pipeline"
+  },
+  {
+    "id": "gq-004",
+    "question": "What streaming protocol does the query API use to deliver responses?",
+    "expected_answer_keywords": ["sse", "server-sent events", "streaming"],
+    "namespace": "default",
+    "min_confidence": "HIGH",
+    "category": "api"
+  },
+  {
+    "id": "gq-005",
+    "question": "What LLM is used for answer generation?",
+    "expected_answer_keywords": ["gpt-4o-mini", "openai", "generation"],
+    "namespace": "default",
+    "min_confidence": "HIGH",
+    "category": "architecture"
+  }
+]

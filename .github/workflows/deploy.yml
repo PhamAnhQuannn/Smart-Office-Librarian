@@ -1,0 +1,183 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        default: staging
+        options:
+          - staging
+          - prod
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  preflight-backend:
+    name: Backend Preflight
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Require main branch
+        shell: bash
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "Deploy workflow may only run from main." >&2
+            exit 1
+          fi
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install backend dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          if [ -s backend/requirements.txt ]; then
+            python -m pip install -r backend/requirements.txt
+          fi
+          python -m pip install pytest
+
+      - name: Run scoped unit regression
+        run: >-
+          python -m pytest
+          backend/tests/unit/test_api/test_admin_routes.py
+          backend/tests/unit/test_infra_ops_scripts.py -v
+
+      - name: Run non-happy-path integration regression
+        run: >-
+          python -m pytest
+          backend/tests/integration/test_audit_logging.py
+          backend/tests/integration/test_http_app.py
+          backend/tests/integration/test_data_retention.py -v
+
+  preflight-frontend:
+    name: Frontend Preflight
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Require main branch
+        shell: bash
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "Deploy workflow may only run from main." >&2
+            exit 1
+          fi
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Typecheck frontend
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+  approval-gate:
+    name: Environment Approval
+    needs:
+      - preflight-backend
+      - preflight-frontend
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }}
+    steps:
+      - name: Record approval
+        run: echo "Deployment to ${{ inputs.environment }} approved."
+
+  deploy:
+    name: Deploy to Server
+    needs: approval-gate
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_ENV: ${{ inputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select server host
+        id: host
+        shell: bash
+        run: |
+          if [ "$DEPLOY_ENV" = "prod" ]; then
+            echo "host=${{ secrets.PROD_HOST }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "host=${{ secrets.STAGING_HOST }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Select SSH key
+        id: key
+        shell: bash
+        run: |
+          if [ "$DEPLOY_ENV" = "prod" ]; then
+            echo "key=${{ secrets.PROD_SSH_KEY }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "key=${{ secrets.STAGING_SSH_KEY }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Write SSH private key
+        shell: bash
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ steps.key.outputs.key }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ steps.host.outputs.host }}" >> ~/.ssh/known_hosts
+
+      - name: Run deploy script on server
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.sha }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
+            "deployer@${{ steps.host.outputs.host }}" \
+            "RELEASE_TAG=${RELEASE_TAG} DEPLOY_ENV=${DEPLOY_ENV} bash ~/embedlyzer/infra/scripts/deploy.sh"
+
+      - name: Verify health after deploy
+        shell: bash
+        run: |
+          HOST="${{ steps.host.outputs.host }}"
+          for i in 1 2 3 4 5; do
+            STATUS=$(curl -sf --max-time 10 "https://${HOST}/health" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status','unknown'))" 2>/dev/null || echo "unreachable")
+            echo "Attempt ${i}: status=${STATUS}"
+            if [ "$STATUS" = "ok" ]; then
+              echo "Health check passed."
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "Health check failed after 5 attempts — deployment may be unhealthy." >&2
+          exit 1
+
+      - name: Publish deploy summary
+        if: always()
+        shell: bash
+        run: |
+          echo "## Deploy Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Environment: **${DEPLOY_ENV}**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Host: \`${{ steps.host.outputs.host }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Release SHA: \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Triggered by: ${{ github.actor }}" >> "$GITHUB_STEP_SUMMARY"

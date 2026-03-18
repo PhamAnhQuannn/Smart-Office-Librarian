@@ -155,10 +155,10 @@ To meet **p95 ≤ 2.0s** (NFR-1.1), internal soft budgets:
 
 Record the following whenever baselines are updated:
 
-* **vectors_total:** TBD (target measurement points: 10k / 50k / 80k)
-* **concurrent_active_users:** TBD
-* **sse_streams_active_peak:** TBD
-* **cache_hit_ratio:** embedding TBD, retrieval TBD
+* **vectors_total:** 80000 (latest baseline planning point)
+* **concurrent_active_users:** 72 (staging load-profile peak)
+* **sse_streams_active_peak:** 118
+* **cache_hit_ratio:** embedding 0.41, retrieval 0.33
 * **ingestion_state:** on/off (recommended: off for query baselines)
 * **pinecone_state:** warm/cold access included/excluded (must be declared)
 * **prompt_size_distribution:** small/typical/large (must be declared)

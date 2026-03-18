@@ -1,0 +1,70 @@
+NEXT WORK — Embedlyzer
+======================
+Date: 2026-03-15
+Status: Implementation phase COMPLETE (417 tests passing).
+        All remaining work is manual operator/deployment tasks.
+
+────────────────────────────────────────────────────────────────
+MANUAL STEPS REQUIRED BEFORE FIRST DEPLOYMENT
+────────────────────────────────────────────────────────────────
+
+1. PROVISION EXTERNAL SERVICES
+   a. OpenAI — generate API key → set OPENAI_API_KEY
+   b. Pinecone — create index (dim=1536, metric=cosine) → set PINECONE_API_KEY + PINECONE_INDEX_NAME
+   c. PostgreSQL 15+ — provision instance (Docker Compose included) → set DATABASE_URL
+   d. Redis 7+ — provision instance (Docker Compose included) → set REDIS_URL
+   e. GitHub Personal Access Token (scopes: repo:read / contents:read) → set GITHUB_TOKEN
+      (only needed for private repo ingestion)
+
+2. GENERATE SECRETS
+   a. JWT_SECRET              → openssl rand -hex 32
+   b. DB_PASSWORD             → use password manager or openssl rand -base64 24
+   c. JWT_SECRET_ENCRYPTION_KEY → openssl rand -hex 32 (only if using encrypted JWT path)
+
+3. INFRASTRUCTURE SETUP
+   a. Copy env file:          cp backend/.env.example backend/.env  →  fill all blank keys
+   b. Start services:         docker compose -f infra/docker/docker-compose.yml up -d
+   c. Run DB migrations:      docker compose exec api alembic upgrade head
+   d. Seed first admin user:  SEED_ADMIN_EMAIL=you@example.com SEED_ADMIN_PASSWORD=strong \
+                              docker compose exec api python scripts/seed_db.py
+   e. Terraform (AWS):        cd infra/terraform && terraform init && terraform plan && terraform apply
+                              (requires AWS CLI + credentials configured)
+   f. SSH key pair:           set ssh_key_pair_name / ssh_public_key in infra/terraform/variables.tf
+   g. DNS:                    point domain A record to Lightsail static IP
+   h. Caddy TLS (prod):       replace "tls internal" with "tls your@email.com" in infra/caddy/Caddyfile
+   i. Grafana password:       edit infra/grafana/grafana.ini → [security] admin_password
+   j. Prometheus targets:     verify infra/prometheus/prometheus.yml targets match your host/ports
+
+4. GITHUB ACTIONS SECRETS  (repo Settings → Secrets and variables → Actions)
+   - STAGING_SSH_KEY      private key matching staging server authorized_keys
+   - PROD_SSH_KEY         private key matching prod server authorized_keys
+   - STAGING_HOST         IP or hostname of staging server
+   - PROD_HOST            IP or hostname of prod server
+   Create GitHub Environments: "staging" and "prod" (prod → add required reviewers)
+
+5. POST-DEPLOYMENT VERIFICATION
+   a. curl https://<domain>/health          → {"status":"ok"}
+   b. curl https://<domain>/ready           → all checks true
+   c. alembic current (inside api container) → should show "head"
+   d. docker compose logs worker            → "celery@... ready"
+   e. POST /api/v1/ingest with a small public GitHub repo
+   f. POST /api/v1/query                    → expect answer or below_threshold refusal
+   g. Grafana dashboards (port 3001)        → 4 dashboards load
+   h. python backend/scripts/evaluate_golden_questions.py → ≥80% pass rate
+
+────────────────────────────────────────────────────────────────
+LOW-PRIORITY CODE ITEMS (non-blocking for MVP)
+────────────────────────────────────────────────────────────────
+
+C-03  frontend/public/favicon.ico is a 0-byte placeholder.
+      Replace with a real .ico file before public launch.
+
+C-05  SMTP / email alerting not wired.
+      System logs threshold and budget alerts only.
+      Wire email notifications as a future feature when needed.
+
+────────────────────────────────────────────────────────────────
+REFERENCE
+────────────────────────────────────────────────────────────────
+Full deployment manual:  docs/00_backbone/LIVE_PRODUCT_EXECUTION_TRACKER.md  (R-01 → R-06)
+Work history:            docs/00_backbone/WORK_STATUS.md

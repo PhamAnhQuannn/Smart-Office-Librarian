@@ -27,6 +27,8 @@ class UserRole(str, Enum):
 class AuthenticatedUser:
     user_id: str
     role: UserRole
+    workspace_id: str = ""
+    workspace_slug: str = ""
 
     @property
     def is_admin(self) -> bool:
@@ -318,6 +320,40 @@ def decode_jwt_token(token: str, *, secret: str) -> dict[str, Any]:
         raise
     except Exception as exc:
         raise AuthenticationError("JWT decode error") from exc
+
+
+def issue_jwt_token(
+    *,
+    user_id: str,
+    email: str,
+    role: str,
+    secret: str,
+    workspace_id: str = "",
+    workspace_slug: str = "",
+    expires_in_seconds: int = 86400,
+) -> str:
+    """Issue a signed HS256 JWT for the given user.
+
+    Produces a token compatible with decode_jwt_token and the frontend AuthUser type.
+    """
+    header = _b64url_encode(
+        json.dumps({"alg": "HS256", "typ": "JWT"}, separators=(",", ":")).encode()
+    )
+    payload_data: dict[str, Any] = {
+        "sub": user_id,
+        "email": email,
+        "role": role,
+        "workspace_id": workspace_id,
+        "workspace_slug": workspace_slug,
+        "exp": int(time.time()) + expires_in_seconds,
+    }
+    payload = _b64url_encode(
+        json.dumps(payload_data, separators=(",", ":")).encode()
+    )
+    signing_input = f"{header}.{payload}".encode()
+    sig = hmac.new(secret.encode(), signing_input, hashlib.sha256).digest()
+    signature = _b64url_encode(sig)
+    return f"{header}.{payload}.{signature}"
 
 
 def build_rbac_filter(user: AuthenticatedUser) -> dict[str, Any]:

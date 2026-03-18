@@ -72,4 +72,12 @@ def get_current_user(
     except ValueError:
         role = UserRole.USER
 
-    return AuthenticatedUser(user_id=user_id, role=role)
+    workspace_id: str = claims.get("workspace_id") or ""
+    workspace_slug: str = claims.get("workspace_slug") or ""
+
+    return AuthenticatedUser(
+        user_id=user_id,
+        role=role,
+        workspace_id=workspace_id,
+        workspace_slug=workspace_slug,
+    )
