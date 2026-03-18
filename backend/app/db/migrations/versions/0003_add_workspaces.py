@@ -40,52 +40,47 @@ def upgrade() -> None:
     op.create_index("ix_workspaces_owner_id", "workspaces", ["owner_id"])
 
     # ── sources: add workspace_id, drop visibility ─────────────────────────────
-    try:
-        op.add_column("sources", sa.Column("workspace_id", sa.String(36), nullable=True))
-    except Exception:
-        pass
-    # last_indexed_sha may already exist (added by 0002 on some deployments)
-    try:
-        op.add_column("sources", sa.Column("last_indexed_sha", sa.String(40), nullable=True))
-    except Exception:
-        pass
+    # Use IF NOT EXISTS to handle re-runs or partial prior migrations
+    op.execute("ALTER TABLE sources ADD COLUMN IF NOT EXISTS workspace_id VARCHAR(36)")
+    op.execute("ALTER TABLE sources ADD COLUMN IF NOT EXISTS last_indexed_sha VARCHAR(40)")
 
     # Back-fill: leave workspace_id NULL for now (existing rows from old schema)
     # Operators must re-ingest after migration on live systems with existing data.
 
-    try:
-        op.create_foreign_key(
-            "fk_sources_workspace_id",
-            "sources", "workspaces",
-            ["workspace_id"], ["id"],
-            ondelete="CASCADE",
-        )
-    except Exception:
-        pass
-    try:
-        op.create_index("ix_sources_workspace_id", "sources", ["workspace_id"])
-    except Exception:
-        pass
+    # Create FK only if it doesn't already exist
+    op.execute("""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_constraint WHERE conname = 'fk_sources_workspace_id'
+            ) THEN
+                ALTER TABLE sources
+                    ADD CONSTRAINT fk_sources_workspace_id
+                    FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE;
+            END IF;
+        END $$;
+    """)
+    op.execute("""
+        CREATE INDEX IF NOT EXISTS ix_sources_workspace_id ON sources (workspace_id)
+    """)
 
     # Drop old visibility column (workspace namespace is the isolation mechanism now)
-    try:
-        op.drop_column("sources", "visibility")
-    except Exception:
-        pass  # column may not exist if already dropped by a prior migration
+    op.execute("ALTER TABLE sources DROP COLUMN IF EXISTS visibility")
 
     # ── ingest_runs: add workspace_id ──────────────────────────────────────────
-    try:
-        op.add_column(
-            "ingest_runs",
-            sa.Column(
-                "workspace_id",
-                sa.String(36),
-                sa.ForeignKey("workspaces.id", ondelete="SET NULL"),
-                nullable=True,
-            ),
-        )
-    except Exception:
-        pass
+    op.execute("ALTER TABLE ingest_runs ADD COLUMN IF NOT EXISTS workspace_id VARCHAR(36)")
+    op.execute("""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_constraint WHERE conname = 'ingest_runs_workspace_id_fkey'
+            ) THEN
+                ALTER TABLE ingest_runs
+                    ADD CONSTRAINT ingest_runs_workspace_id_fkey
+                    FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE SET NULL;
+            END IF;
+        END $$;
+    """)
 
 
 def downgrade() -> None:
