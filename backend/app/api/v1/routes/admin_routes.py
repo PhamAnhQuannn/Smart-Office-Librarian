@@ -466,3 +466,41 @@ def update_workspace_limits(
         )
     except Exception as exc:
         return build_error_response(status_code=500, error_code="INTERNAL_ERROR", message=str(exc))
+
+
+@router.delete("/workspaces/{workspace_id}", summary="Delete a workspace and all its data")
+def delete_workspace(
+    workspace_id: str,
+    request: Request,
+    user: AuthenticatedUser = Depends(get_authenticated_user),
+    db: Session = Depends(get_db_session),
+) -> JSONResponse:
+    try:
+        _require_admin(user)
+    except AdminRouteError as exc:
+        return build_error_response(status_code=exc.status_code, error_code=exc.error_code, message=exc.message)
+
+    try:
+        from app.db.repositories.workspaces_repo import WorkspacesRepository
+
+        ws = WorkspacesRepository(db).get_by_id(workspace_id)
+        if ws is None:
+            return build_error_response(status_code=404, error_code="NOT_FOUND", message="Workspace not found")
+
+        slug = ws.slug
+        db.delete(ws)
+        db.commit()
+
+        _get_logger(request).log_admin_audit_event(
+            actor_id=user.user_id,
+            actor_role=user.role,
+            resource_type="workspace",
+            action="deleted",
+            resource_id=workspace_id,
+            changes={"slug": slug},
+        )
+
+        return JSONResponse(status_code=200, content={"workspace_id": workspace_id, "slug": slug, "status": "deleted"})
+    except Exception as exc:
+        return build_error_response(status_code=500, error_code="INTERNAL_ERROR", message=str(exc))
+

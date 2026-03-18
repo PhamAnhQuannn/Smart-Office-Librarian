@@ -15,6 +15,7 @@ export const ADMIN_THRESHOLDS_ENDPOINT = "/api/v1/admin/thresholds";
 export const ADMIN_SOURCES_ENDPOINT = "/api/v1/admin/sources";
 export const ADMIN_AUDIT_LOGS_ENDPOINT = "/api/v1/admin/audit-logs";
 export const ADMIN_INGEST_RUNS_ENDPOINT = "/api/v1/admin/ingest-runs";
+export const ADMIN_WORKSPACES_ENDPOINT = "/api/v1/admin/workspaces";
 export const INGEST_ENDPOINT = "/api/v1/ingest";
 
 /** Rate limiting (client-side guard, mirrors server-side rule). */

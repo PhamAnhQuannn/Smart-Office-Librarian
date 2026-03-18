@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   BarChart3,
   BookOpen,
+  Building2,
   Clock,
   CreditCard,
   Database,
@@ -62,9 +63,10 @@ function ToastOverlay(): JSX.Element {
 // ── Admin nav items ───────────────────────────────────────────────────────────
 
 const MANAGE_NAV = [
-  { id: "ingestion",  label: "Ingest",     href: "/admin/ingestion",  icon: Plus },
-  { id: "sources",    label: "Sources",    href: "/admin/sources",    icon: Database },
-  { id: "thresholds", label: "Thresholds", href: "/admin/thresholds", icon: Sliders },
+  { id: "ingestion",   label: "Ingest",      href: "/admin/ingestion",   icon: Plus },
+  { id: "sources",     label: "Sources",     href: "/admin/sources",     icon: Database },
+  { id: "workspaces",  label: "Workspaces",  href: "/admin/workspaces",  icon: Building2 },
+  { id: "thresholds",  label: "Thresholds",  href: "/admin/thresholds",  icon: Sliders },
 ];
 
 const OPERATE_NAV = [

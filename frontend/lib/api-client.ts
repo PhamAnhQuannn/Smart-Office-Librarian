@@ -199,3 +199,70 @@ export async function postIngest(
 		errorPayload?.error_code,
 	);
 }
+
+// ─── Admin — Workspaces ────────────────────────────────────────────────────
+
+export interface AdminWorkspace {
+	id: string;
+	slug: string;
+	display_name: string;
+	owner_id: string;
+	source_count: number;
+	limits: { max_sources: number; max_chunks: number; monthly_query_cap: number };
+	created_at: string | null;
+}
+
+export async function adminListWorkspaces(
+	authToken: string,
+	limit = 50,
+	offset = 0,
+): Promise<{ workspaces: AdminWorkspace[] }> {
+	const response = await fetch(
+		buildApiUrl(`/api/v1/admin/workspaces?limit=${limit}&offset=${offset}`),
+		{ headers: createHeaders(authToken) },
+	);
+	if (response.ok) return response.json() as Promise<{ workspaces: AdminWorkspace[] }>;
+	const errorPayload = await parseApiError(response);
+	throw new ApiClientError(
+		errorPayload?.message ?? "Failed to list workspaces.",
+		response.status,
+		errorPayload?.error_code,
+	);
+}
+
+export async function adminDeleteWorkspace(workspaceId: string, authToken: string): Promise<void> {
+	const response = await fetch(
+		buildApiUrl(`/api/v1/admin/workspaces/${encodeURIComponent(workspaceId)}`),
+		{ method: "DELETE", headers: createHeaders(authToken) },
+	);
+	if (response.ok) return;
+	const errorPayload = await parseApiError(response);
+	throw new ApiClientError(
+		errorPayload?.message ?? "Failed to delete workspace.",
+		response.status,
+		errorPayload?.error_code,
+	);
+}
+
+export async function adminUpdateWorkspaceLimits(
+	workspaceId: string,
+	limits: Partial<AdminWorkspace["limits"]>,
+	authToken: string,
+): Promise<void> {
+	const response = await fetch(
+		buildApiUrl(`/api/v1/admin/workspaces/${encodeURIComponent(workspaceId)}/limits`),
+		{
+			method: "PUT",
+			headers: createHeaders(authToken),
+			body: JSON.stringify(limits),
+		},
+	);
+	if (response.ok) return;
+	const errorPayload = await parseApiError(response);
+	throw new ApiClientError(
+		errorPayload?.message ?? "Failed to update workspace limits.",
+		response.status,
+		errorPayload?.error_code,
+	);
+}
+

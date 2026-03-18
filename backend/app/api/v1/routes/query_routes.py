@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, Request
+from sqlalchemy.orm import Session
 
 from app.api.v1.dependencies.settings import (
     build_error_response,
@@ -13,11 +15,41 @@ from app.api.v1.dependencies.settings import (
     get_runtime_app,
     response_from_contract,
 )
+from app.db.session import get_db_session
 from app.domain.services.query_service import QueryRequest, QueryService
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["query"])
+
+
+def _quota_key(workspace_id: str) -> str:
+    """Redis key for this workspace's monthly query counter."""
+    month = datetime.now(timezone.utc).strftime("%Y-%m")
+    return f"workspace:{workspace_id}:queries:{month}"
+
+
+def _check_and_increment_quota(request: Request, workspace_id: str, monthly_cap: int) -> bool:
+    """Return True if the query is allowed; increments counter if so.
+    Gracefully allows the query when Redis is unavailable."""
+    cache = getattr(request.app.state, "cache", None)
+    if cache is None or not workspace_id:
+        return True
+    try:
+        redis = cache._client
+        key = _quota_key(workspace_id)
+        # Atomic increment; set 35-day TTL on first use so the key expires naturally.
+        count = redis.incr(key)
+        if count == 1:
+            redis.expire(key, 60 * 60 * 24 * 35)
+        if count > monthly_cap:
+            # Over cap — decrement back so the count stays accurate.
+            redis.decr(key)
+            return False
+        return True
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("quota check failed workspace=%s error=%s — allowing query", workspace_id, exc)
+        return True
 
 
 def _get_query_service(request: Request) -> QueryService | None:
@@ -31,6 +63,7 @@ def query_endpoint(
     request: Request,
     user: Any = Depends(get_authenticated_user),
     runtime_app: Any = Depends(get_runtime_app),
+    db: Session = Depends(get_db_session),
 ):
     query_text = str(payload.get("query") or "").strip()
     if not query_text:
@@ -44,6 +77,23 @@ def query_endpoint(
 
     # Namespace is derived from the user's workspace — clients cannot override it.
     namespace = user.workspace_slug or user.workspace_id or "dev"
+
+    # ── Monthly query quota ──────────────────────────────────────────────────
+    if user.workspace_id and db is not None:
+        try:
+            from app.db.repositories.workspaces_repo import WorkspacesRepository
+            ws = WorkspacesRepository(db).get_by_id(user.workspace_id)
+            if ws is not None and ws.monthly_query_cap > 0:
+                allowed = _check_and_increment_quota(request, user.workspace_id, ws.monthly_query_cap)
+                if not allowed:
+                    return build_error_response(
+                        status_code=429,
+                        error_code="QUOTA_EXCEEDED",
+                        message=f"Monthly query limit of {ws.monthly_query_cap} reached",
+                    )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("workspace quota lookup failed: %s — allowing query", exc)
+    # ─────────────────────────────────────────────────────────────────────────
 
     # Use the real QueryService pipeline when wired up in app state.
     query_service: QueryService | None = _get_query_service(request)
