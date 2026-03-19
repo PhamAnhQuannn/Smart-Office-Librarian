@@ -22,6 +22,6 @@ class UsersRepository(BaseRepository[UserModel]):
     def get_by_id(self, user_id: str) -> UserModel | None:
         return self._session.get(UserModel, user_id)
 
-    def create(self, *, email: str, hashed_password: str, role: str = "user") -> UserModel:
+    def create(self, *, email: str, hashed_password: str | None = None, role: str = "user") -> UserModel:
         user = UserModel(email=email, hashed_password=hashed_password, role=role)
         return self.add(user)
