@@ -28,14 +28,19 @@ def ingest_endpoint(
     ingest_jobs: dict[str, dict[str, Any]] = Depends(get_ingest_jobs),
     db: Session = Depends(get_db_session),
 ):
-    if not user.workspace_id:
+    # Admins may target any workspace by supplying workspace_id in the payload.
+    target_workspace_id = user.workspace_id
+    if user.is_admin and payload.get("workspace_id"):
+        target_workspace_id = str(payload["workspace_id"])
+
+    if not target_workspace_id:
         return build_error_response(
             status_code=403,
             error_code="FORBIDDEN",
             message="No workspace associated with this account",
         )
 
-    workspace = WorkspacesRepository(db).get_by_id(user.workspace_id)
+    workspace = WorkspacesRepository(db).get_by_id(target_workspace_id)
     if workspace is None:
         return build_error_response(
             status_code=403,
@@ -43,7 +48,7 @@ def ingest_endpoint(
             message="Workspace not found",
         )
 
-    source_count = SourcesRepository(db).count_by_workspace(user.workspace_id)
+    source_count = SourcesRepository(db).count_by_workspace(target_workspace_id)
     if source_count >= workspace.max_sources:
         return build_error_response(
             status_code=429,
@@ -66,7 +71,7 @@ def ingest_endpoint(
         "repo": repo,
         "branch": branch,
         "requested_by": user.user_id,
-        "workspace_id": user.workspace_id,
+        "workspace_id": target_workspace_id,
         "namespace": workspace.slug,
         "status": "queued",
     }

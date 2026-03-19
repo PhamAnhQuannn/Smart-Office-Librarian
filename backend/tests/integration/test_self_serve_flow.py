@@ -223,3 +223,98 @@ def test_full_self_serve_flow(client: TestClient) -> None:
     # Step 6: unauthenticated access is blocked
     unauth_resp = client.get("/api/v1/workspace/me")
     assert unauth_resp.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# 9.1 — Additional register validation tests
+# ---------------------------------------------------------------------------
+
+
+def test_register_short_password_returns_422(client: TestClient) -> None:
+    resp = client.post(
+        "/api/v1/auth/register",
+        json={"email": "newuser@example.com", "password": "short"},
+    )
+    # The app normalises validation errors to 400 via the RequestValidationError handler.
+    assert resp.status_code == 400
+    assert resp.json()["error_code"] == "VALIDATION_ERROR"
+
+
+def test_register_disabled_returns_403(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("REGISTRATION_ENABLED", "false")
+    resp = client.post(
+        "/api/v1/auth/register",
+        json={"email": "blocked@example.com", "password": "goodpassword123"},
+    )
+    assert resp.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# 9.3 — Ingest quota enforcement
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture()
+def quota_client(monkeypatch: pytest.MonkeyPatch) -> tuple[TestClient, sessionmaker]:
+    """TestClient with an exposed session factory so tests can mutate DB state."""
+    monkeypatch.setenv("JWT_SECRET", JWT_SECRET)
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    for table in (UserModel.__table__, WorkspaceModel.__table__, SourceModel.__table__):
+        table.create(bind=engine, checkfirst=True)
+
+    TestingSessionFactory: sessionmaker = sessionmaker(
+        bind=engine, autocommit=False, autoflush=False
+    )
+
+    def _override_db() -> Generator[Session, None, None]:
+        s = TestingSessionFactory()
+        try:
+            yield s
+            s.commit()
+        except Exception:
+            s.rollback()
+            raise
+        finally:
+            s.close()
+
+    app = create_app(embedlyzer=EmbedlyzerApp(), jwt_secret=JWT_SECRET)
+    app.dependency_overrides[get_db_session] = _override_db
+    return TestClient(app), TestingSessionFactory
+
+
+def test_ingest_quota_exceeded_returns_429(
+    quota_client: tuple[TestClient, sessionmaker],
+) -> None:
+    http, SessionFactory = quota_client
+
+    resp = http.post(
+        "/api/v1/auth/register",
+        json={"email": "quota@example.com", "password": TEST_PASS},
+    )
+    assert resp.status_code == 201
+    token = resp.json()["access_token"]
+
+    # Force max_sources to 0 so the next ingest hits the quota ceiling.
+    db = SessionFactory()
+    try:
+        ws = db.query(WorkspaceModel).first()
+        assert ws is not None
+        ws.max_sources = 0
+        db.commit()
+    finally:
+        db.close()
+
+    resp = http.post(
+        "/api/v1/ingest",
+        json={"repo": "octocat/hello-world"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 429
+    assert resp.json()["error_code"] == "QUOTA_EXCEEDED"

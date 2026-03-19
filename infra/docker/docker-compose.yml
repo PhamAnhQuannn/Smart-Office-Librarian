@@ -12,6 +12,7 @@ services:
       DB_PORT: "5432"
       REDIS_HOST: redis
       REDIS_PORT: "6379"
+      REGISTRATION_ENABLED: ${REGISTRATION_ENABLED:-true}
     ports:
       - "8000:8000"
     depends_on:

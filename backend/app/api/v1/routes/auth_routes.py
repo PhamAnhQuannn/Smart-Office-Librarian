@@ -6,6 +6,8 @@ POST /auth/register  creates a new user + workspace and returns a signed JWT.
 
 from __future__ import annotations
 
+import os
+
 import bcrypt as _bcrypt
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr, field_validator
@@ -106,6 +108,8 @@ def register(
     Returns a signed JWT on success (status 201).
     Returns 409 if the email is already registered.
     """
+    if os.environ.get("REGISTRATION_ENABLED", "true").lower() not in ("1", "true", "yes"):
+        raise HTTPException(status_code=403, detail="Self-registration is currently disabled.")
     users_repo = UsersRepository(db)
     if users_repo.get_by_email(payload.email) is not None:
         raise HTTPException(status_code=409, detail="Email already registered")

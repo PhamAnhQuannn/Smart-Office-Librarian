@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { buildApiUrl } from "../../lib/api-client";
-import { ADMIN_THRESHOLDS_ENDPOINT } from "../../lib/constants";
+import { ADMIN_THRESHOLDS_ENDPOINT, ADMIN_WORKSPACES_ENDPOINT } from "../../lib/constants";
 import { useToast } from "../../context/toast-context";
 
 interface ThresholdConfig {
@@ -18,6 +18,12 @@ interface ThresholdListResponse {
 
 interface ThresholdTunerProps {
   authToken?: string;
+}
+
+interface WorkspaceSummary {
+  id: string;
+  slug: string;
+  display_name: string;
 }
 
 function getStrictnessLabel(v: number): string {
@@ -42,6 +48,8 @@ function getStrictnessDescription(v: number): string {
 
 export function ThresholdTuner({ authToken }: ThresholdTunerProps): JSX.Element {
   const { addToast } = useToast();
+  const [workspaces, setWorkspaces] = useState<WorkspaceSummary[]>([]);
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState("");
   const [namespace, setNamespace] = useState("default");
   const [indexVersion, setIndexVersion] = useState(1);
   const [savedValue, setSavedValue] = useState(0.65);
@@ -72,6 +80,26 @@ export function ThresholdTuner({ authToken }: ThresholdTunerProps): JSX.Element 
     }
   }, [authToken, namespace, indexVersion, addToast]);
 
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetch(buildApiUrl(ADMIN_WORKSPACES_ENDPOINT), {
+          headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as { workspaces?: WorkspaceSummary[] };
+        const list = data.workspaces ?? [];
+        setWorkspaces(list);
+        if (list.length > 0) {
+          setSelectedWorkspaceId(list[0].id);
+          setNamespace(list[0].slug);
+        }
+      } catch {
+        // silently ignore — user can still type a namespace
+      }
+    })();
+  }, [authToken]);
+
   useEffect(() => { void fetchThreshold(); }, [fetchThreshold]);
 
   async function handleSave(): Promise<void> {
@@ -83,7 +111,7 @@ export function ThresholdTuner({ authToken }: ThresholdTunerProps): JSX.Element 
           "Content-Type": "application/json",
           ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
         },
-        body: JSON.stringify({ namespace, index_version: indexVersion, threshold: value }),
+        body: JSON.stringify({ namespace, index_version: indexVersion, threshold: value, workspace_id: selectedWorkspaceId }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setSavedValue(value);
@@ -101,13 +129,34 @@ export function ThresholdTuner({ authToken }: ThresholdTunerProps): JSX.Element 
     <div className="max-w-lg space-y-8">
       {/* Namespace selector */}
       <div className="space-y-1">
-        <label className="text-xs font-black text-slate-400 uppercase tracking-wider">Namespace</label>
-        <input
-          value={namespace}
-          onChange={(e) => setNamespace(e.target.value)}
-          onBlur={() => void fetchThreshold()}
-          className="w-full px-4 py-3 bg-slate-50 border-2 border-transparent rounded-xl focus:bg-white focus:border-teal-500 outline-none font-medium text-slate-900"
-        />
+        <label className="text-xs font-black text-slate-400 uppercase tracking-wider">Workspace</label>
+        {workspaces.length > 0 ? (
+          <select
+            value={selectedWorkspaceId}
+            onChange={(e) => {
+              const ws = workspaces.find((w) => w.id === e.target.value);
+              if (ws) {
+                setSelectedWorkspaceId(ws.id);
+                setNamespace(ws.slug);
+              }
+            }}
+            className="w-full px-4 py-3 bg-slate-50 border-2 border-transparent rounded-xl focus:bg-white focus:border-teal-500 outline-none font-medium text-slate-900"
+          >
+            {workspaces.map((ws) => (
+              <option key={ws.id} value={ws.id}>
+                {ws.display_name} ({ws.slug})
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            value={namespace}
+            onChange={(e) => setNamespace(e.target.value)}
+            onBlur={() => void fetchThreshold()}
+            placeholder="namespace"
+            className="w-full px-4 py-3 bg-slate-50 border-2 border-transparent rounded-xl focus:bg-white focus:border-teal-500 outline-none font-medium text-slate-900"
+          />
+        )}
       </div>
 
       {/* Index version */}

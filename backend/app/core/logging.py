@@ -146,6 +146,8 @@ def _sanitize_log_data(value: Any, *, parent_key: str | None = None) -> Any:
 		return [_sanitize_log_data(item, parent_key=parent_key) for item in value]
 	if isinstance(value, tuple):
 		return tuple(_sanitize_log_data(item, parent_key=parent_key) for item in value)
+	if isinstance(value, Exception):
+		return str(value)
 	return value
 
 

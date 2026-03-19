@@ -26,6 +26,7 @@ export function IngestForm({ authToken, onSuccess }: IngestFormProps): JSX.Eleme
   const [repoUrl, setRepoUrl] = useState("");
   const [strategy, setStrategy] = useState<Strategy>("incremental");
   const [loading, setLoading] = useState(false);
+  const [workspaceId, setWorkspaceId] = useState("");
 
   function repoName(): string {
     try {
@@ -50,6 +51,7 @@ export function IngestForm({ authToken, onSuccess }: IngestFormProps): JSX.Eleme
           source_url: repoUrl.trim(),
           strategy,
           connector,
+          ...(workspaceId.trim() ? { workspace_id: workspaceId.trim() } : {}),
         }),
       });
       if (!res.ok) {
@@ -61,6 +63,7 @@ export function IngestForm({ authToken, onSuccess }: IngestFormProps): JSX.Eleme
       setConnector(null);
       setRepoUrl("");
       setStrategy("incremental");
+      setWorkspaceId("");
       onSuccess?.();
     } catch (err: unknown) {
       addToast(
@@ -196,6 +199,18 @@ export function IngestForm({ authToken, onSuccess }: IngestFormProps): JSX.Eleme
                 Faster, keeps existing content available
               </p>
             </button>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-black text-slate-400 uppercase">
+              Target Workspace ID{" "}
+              <span className="font-normal text-slate-300">(admin override — leave blank for your own workspace)</span>
+            </label>
+            <input
+              value={workspaceId}
+              onChange={(e) => setWorkspaceId(e.target.value)}
+              placeholder="ws-abc123 or leave blank"
+              className="w-full px-5 py-3 bg-slate-50 border-2 border-transparent rounded-xl focus:bg-white focus:border-teal-500 outline-none transition-all font-mono text-sm text-slate-900"
+            />
           </div>
           <div className="flex gap-4">
             <button
