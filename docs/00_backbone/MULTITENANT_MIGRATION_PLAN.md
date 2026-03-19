@@ -318,9 +318,9 @@
 
 ### 8.2 — Add `REGISTRATION_ENABLED` feature flag
 **File**: `infra/docker/docker-compose.yml`
-- [ ] Add `REGISTRATION_ENABLED=true` env var
+- [x] Add `REGISTRATION_ENABLED=true` env var
 **File**: `backend/app/api/v1/routes/auth_routes.py`
-- [ ] Check `os.environ.get("REGISTRATION_ENABLED", "true")` at start of register endpoint; return `403 FEATURE_DISABLED` if false
+- [x] Check `os.environ.get("REGISTRATION_ENABLED", "true")` at start of register endpoint; return `403 FEATURE_DISABLED` if false
 
 ### 8.3 — Update seed_db.py
 **File**: `backend/scripts/seed_db.py`
@@ -347,10 +347,10 @@
 
 ### 9.1 — Update unit tests for auth
 **File**: `backend/tests/unit/` *(find existing auth tests)*
-- [ ] Add `test_register_success` — creates user + workspace, returns 201 + JWT
-- [ ] Add `test_register_duplicate_email` — returns 409
-- [ ] Add `test_register_short_password` — returns 422
-- [ ] Update `test_login` — ensure workspace_id appears in JWT claims
+- [x] Add `test_register_success` — creates user + workspace, returns 201 + JWT
+- [x] Add `test_register_duplicate_email` — returns 409
+- [x] Add `test_register_short_password` — returns 422
+- [x] Update `test_login` — ensure workspace_id appears in JWT claims
 
 ### 9.2 — Update unit tests for query route
 **File**: `backend/tests/unit/` *(find existing query tests)*
@@ -359,8 +359,8 @@
 
 ### 9.3 — Update unit tests for ingest route
 **File**: `backend/tests/unit/` *(find existing ingest tests)*
-- [ ] Remove admin-only gate test (or update it to test quota enforcement instead)
-- [ ] Add test: quota exceeded returns 429
+- [x] Remove admin-only gate test (or update it to test quota enforcement instead)
+- [x] Add test: quota exceeded returns 429
 
 ### 9.4 — Integration test: full self-serve flow
 **File**: `backend/tests/integration/test_self_serve_flow.py` *(new file)*
@@ -391,8 +391,8 @@
 
 ### 10.2 — Admin: ingest now requires workspace_id
 **File**: `backend/app/api/v1/routes/ingest_routes.py`
-- [ ] When `user.is_admin`: allow passing explicit `workspace_id` in payload (for cross-workspace admin ops)
-- [ ] Default: use admin's own workspace
+- [x] When `user.is_admin`: allow passing explicit `workspace_id` in payload (for cross-workspace admin ops)
+- [x] Default: use admin's own workspace
 
 ### 10.3 — Admin frontend: workspace list page
 **File**: `frontend/app/admin/workspaces/page.tsx` *(new file)*
@@ -405,13 +405,13 @@
 
 ### 10.5 — Update `IngestForm` for admin: add workspace_id field
 **File**: `frontend/components/admin/IngestForm.tsx`
-- [ ] Add optional "Target Workspace ID" field (for admin-initiated cross-workspace ingest)
-- [ ] Default to admin's own workspace
+- [x] Add optional "Target Workspace ID" field (for admin-initiated cross-workspace ingest)
+- [x] Default to admin's own workspace
 
 ### 10.6 — Update threshold tuner to be workspace-aware
 **File**: `frontend/components/admin/ThresholdTuner.tsx`
-- [ ] Add workspace selector dropdown (lists all workspaces)
-- [ ] PUT `/admin/thresholds` sends `workspace_id` so per-workspace thresholds can be set
+- [x] Add workspace selector dropdown (lists all workspaces)
+- [x] PUT `/admin/thresholds` sends `workspace_id` so per-workspace thresholds can be set
 
 **File**: `backend/app/db/models.py`
 - [ ] Add `workspace_id` FK to `ThresholdConfigModel` (optional — add in migration 0003 or a follow-up 0004)

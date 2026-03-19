@@ -1,11 +1,31 @@
-﻿# WORK_STATUS.md
+﻿ # WORK_STATUS.md
 
 ## 0) Header Metadata
 - Project: Smart Office Librarian (Embedlyzer)
 - Architecture Version: v1.5
 - Status: **Code complete — pending operator provisioning**
-- Last Updated: 2026-03-15 UTC (session 4)
+- Last Updated: 2026-03-15 UTC (session 5)
 - Owner: Engineering Team
+
+---
+
+## Session 5 Checkpoint — 2026-03-15 UTC
+
+### Completed this session (commit `98036307`, tag `v0.8.0-admin-workspaces`)
+
+| Item | Description | Status |
+|------|-------------|--------|
+| 8.2 | `REGISTRATION_ENABLED` env flag in `auth_routes.py` + `docker-compose.yml` | ✅ |
+| 10.2 | Admin workspace_id override in `ingest_routes.py` | ✅ |
+| 10.5 | "Target Workspace ID" field in `IngestForm.tsx` | ✅ |
+| 10.6 | Workspace dropdown in `ThresholdTuner.tsx` | ✅ |
+| 9.1 | `test_register_short_password_returns_422`, `test_register_disabled_returns_403` added to integration tests | ✅ |
+| 9.3 | `test_ingest_quota_exceeded_returns_429` added to integration tests | ✅ |
+| Bug | Fixed `ValueError` not JSON-serializable in `sanitize_log_data` for Pydantic v2 validation errors | ✅ |
+
+**Test result**: 429 passing / 5 pre-existing failures (Caddy TLS ×2, bash syntax ×1, postgres connect timeout ×1, ingest flow domain ×1)
+
+**All multitenant migration plan items are now complete.**
 
 ---
 
