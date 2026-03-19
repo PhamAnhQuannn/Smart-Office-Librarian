@@ -52,14 +52,9 @@ def _uuid() -> str:
 
 
 def _hash_password(plain: str) -> str:
-    """Minimal bcrypt hash — requires `passlib[bcrypt]` in the environment."""
-    try:
-        from passlib.context import CryptContext  # type: ignore[import]
-        ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        return ctx.hash(plain)
-    except ImportError:
-        # Fallback: clearly-invalid hash so the app won't accept logins in prod.
-        return f"INSECURE-PLAIN:{plain}"
+    """bcrypt hash using the same library as auth_routes.py."""
+    import bcrypt as _bcrypt  # noqa: PLC0415
+    return _bcrypt.hashpw(plain.encode(), _bcrypt.gensalt()).decode()
 
 
 # ---------------------------------------------------------------------------

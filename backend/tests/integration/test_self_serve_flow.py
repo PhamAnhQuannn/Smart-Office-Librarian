@@ -318,3 +318,27 @@ def test_ingest_quota_exceeded_returns_429(
     )
     assert resp.status_code == 429
     assert resp.json()["error_code"] == "QUOTA_EXCEEDED"
+
+
+# ---------------------------------------------------------------------------
+# 9.4 — Full round-trip includes query (register → login → query)
+# ---------------------------------------------------------------------------
+
+
+def test_query_endpoint_responds_after_register(client: TestClient) -> None:
+    """Register a user, then hit the query endpoint.
+
+    No QueryService is wired in the test app, so the route returns stub data
+    with a 200 OK SSE stream.  This verifies the full auth → query path
+    without requiring Pinecone.
+    """
+    token = _register(client)
+    resp = client.post(
+        "/api/v1/query",
+        json={"query": "What is this repo about?"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 200
+    # Stub path returns SSE text; confirm the body is non-empty and SSE-shaped.
+    assert resp.text
+    assert "data:" in resp.text

@@ -46,13 +46,7 @@ class TokenResponse(BaseModel):
 
 
 def _verify_password(plain: str, hashed: str) -> bool:
-    """Verify a plaintext password against a stored hash.
-
-    Supports bcrypt hashes (produced by passlib or bcrypt directly) and the
-    INSECURE-PLAIN fallback written by seed_db.py when passlib is absent.
-    """
-    if hashed.startswith("INSECURE-PLAIN:"):
-        return hashed == f"INSECURE-PLAIN:{plain}"
+    """Verify a plaintext password against a bcrypt hash."""
     try:
         return _bcrypt.checkpw(plain.encode(), hashed.encode())
     except Exception:

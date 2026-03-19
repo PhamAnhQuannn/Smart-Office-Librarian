@@ -25,7 +25,7 @@
 
 ### 1.1 — New ORM model: `WorkspaceModel`
 **File**: `backend/app/db/models.py`
-- [ ] Add `WorkspaceModel` class with fields:
+- [x] Add `WorkspaceModel` class with fields:
   - `id` (UUID PK)
   - `owner_id` (FK → `users.id`, `ondelete=CASCADE`)
   - `slug` (unique, lowercase, URL-safe — used as Pinecone namespace)
@@ -34,44 +34,44 @@
   - `max_sources` (int, default 20)
   - `monthly_query_cap` (int, default 500)
   - `created_at`, `updated_at`
-- [ ] Add `workspace: Mapped["WorkspaceModel"]` relationship back-ref on `UserModel`
+- [x] Add `workspace: Mapped["WorkspaceModel"]` relationship back-ref on `UserModel`
 
 ### 1.2 — Add `workspace_id` FK to `SourceModel`
 **File**: `backend/app/db/models.py`
-- [ ] Add `workspace_id: Mapped[str]` → FK `workspaces.id` `ondelete=CASCADE`, `nullable=False`
-- [ ] Remove `visibility` column (replaced by workspace-level isolation)
-- [ ] Update `SourceModel` relationship to include workspace
+- [x] Add `workspace_id: Mapped[str]` → FK `workspaces.id` `ondelete=CASCADE`, `nullable=False`
+- [x] Remove `visibility` column (replaced by workspace-level isolation)
+- [x] Update `SourceModel` relationship to include workspace
 
 ### 1.3 — Add `workspace_id` FK to `IngestRunModel`
 **File**: `backend/app/db/models.py`
-- [ ] Add `workspace_id: Mapped[str]` → FK `workspaces.id` `ondelete=CASCADE`, `nullable=True`
+- [x] Add `workspace_id: Mapped[str]` → FK `workspaces.id` `ondelete=CASCADE`, `nullable=True`
 
 ### 1.4 — Update `ChunkModel` namespace to be workspace slug
 **File**: `backend/app/db/models.py`
-- [ ] `namespace` column stays but its value is now always `workspace.slug` (not `"dev"`)
-- [ ] Add comment clarifying semantic
+- [x] `namespace` column stays but its value is now always `workspace.slug` (not `"dev"`)
+- [x] Add comment clarifying semantic
 
 ### 1.5 — New Alembic migration
 **File**: `backend/app/db/migrations/versions/0003_add_workspaces.py`
-- [ ] Create `workspaces` table
-- [ ] Add `workspace_id` column to `sources` (nullable first, then backfill, then NOT NULL)
-- [ ] Add `workspace_id` column to `ingest_runs` (nullable)
-- [ ] Drop `visibility` column from `sources`
-- [ ] Add index on `workspaces.owner_id`
-- [ ] Add index on `sources.workspace_id`
-- [ ] Downgrade: reverse all
+- [x] Create `workspaces` table
+- [x] Add `workspace_id` column to `sources` (nullable first, then backfill, then NOT NULL)
+- [x] Add `workspace_id` column to `ingest_runs` (nullable)
+- [x] Drop `visibility` column from `sources`
+- [x] Add index on `workspaces.owner_id`
+- [x] Add index on `sources.workspace_id`
+- [x] Downgrade: reverse all
 
 ### 1.6 — New repository: `WorkspacesRepository`
 **File**: `backend/app/db/repositories/workspaces_repo.py` *(new file)*
-- [ ] `create(*, owner_id, display_name) -> WorkspaceModel` — auto-generates `slug = owner_id[:8]`
-- [ ] `get_by_owner(owner_id) -> WorkspaceModel | None`
-- [ ] `get_by_id(workspace_id) -> WorkspaceModel | None`
-- [ ] `get_by_slug(slug) -> WorkspaceModel | None`
+- [x] `create(*, owner_id, display_name) -> WorkspaceModel` — auto-generates `slug = owner_id[:8]`
+- [x] `get_by_owner(owner_id) -> WorkspaceModel | None`
+- [x] `get_by_id(workspace_id) -> WorkspaceModel | None`
+- [x] `get_by_slug(slug) -> WorkspaceModel | None`
 
 ### 1.7 — Update `SourcesRepository`
 **File**: `backend/app/db/repositories/sources_repo.py` *(if exists, else create)*
-- [ ] `list_by_workspace(workspace_id, *, limit, offset)` method
-- [ ] `count_by_workspace(workspace_id) -> int`
+- [x] `list_by_workspace(workspace_id, *, limit, offset)` method
+- [x] `count_by_workspace(workspace_id) -> int`
 
 ---
 
@@ -80,7 +80,7 @@
 
 ### 2.1 — Registration endpoint
 **File**: `backend/app/api/v1/routes/auth_routes.py`
-- [ ] Add `POST /auth/register` endpoint
+- [x] Add `POST /auth/register` endpoint
   - Accept `{ email, password }` (Pydantic model `RegisterRequest`)
   - Validate email format (regex, no leading/trailing whitespace)
   - Validate password minimum length ≥ 8 chars
@@ -90,34 +90,34 @@
   - Auto-create `WorkspaceModel` for new user via `WorkspacesRepository.create()`
   - Issue JWT via `issue_jwt_token()` (same as login)
   - Return `201` with `TokenResponse`
-- [ ] **Security**: rate limit registration endpoint (5 attempts / 15 min per IP) — add to middleware
-- [ ] **Security**: never leak whether email already exists in error detail for login (already done); registration can say "email already registered"
+- [x] **Security**: rate limit registration endpoint (5 attempts / 15 min per IP) — add to middleware
+- [x] **Security**: never leak whether email already exists in error detail for login (already done); registration can say "email already registered"
 
 ### 2.2 — Router registration
 **File**: `backend/app/api/v1/router.py`
-- [ ] Register new `/auth/register` route (it lives in `auth_routes.py` — no import change needed if router is already included)
+- [x] Register new `/auth/register` route (it lives in `auth_routes.py` — no import change needed if router is already included)
 
 ### 2.3 — `UsersRepository`: ensure `create` hashes password correctly
 **File**: `backend/app/db/repositories/users_repo.py`
-- [ ] Verify `create()` stores bcrypt hash, not plaintext
-- [ ] Remove `INSECURE-PLAIN:` fallback from `_verify_password` in `auth_routes.py` (was only for seed_db)
+- [x] Verify `create()` stores bcrypt hash, not plaintext
+- [x] Remove `INSECURE-PLAIN:` fallback from `_verify_password` in `auth_routes.py` (was only for seed_db)
 
 ### 2.4 — Update JWT: embed `workspace_id` claim
 **File**: `backend/app/core/security.py`
-- [ ] Add `workspace_id: str` param to `issue_jwt_token()`
-- [ ] Include `"workspace_id"` in JWT payload dict
-- [ ] Update `AuthenticatedUser` dataclass: add `workspace_id: str` field
-- [ ] Update `get_current_user()` in `auth.py`: extract `workspace_id` from claims
+- [x] Add `workspace_id: str` param to `issue_jwt_token()`
+- [x] Include `"workspace_id"` in JWT payload dict
+- [x] Update `AuthenticatedUser` dataclass: add `workspace_id: str` field
+- [x] Update `get_current_user()` in `auth.py`: extract `workspace_id` from claims
 
 **File**: `backend/app/api/v1/dependencies/auth.py`
-- [ ] Pass `workspace_id` from claims → `AuthenticatedUser`
+- [x] Pass `workspace_id` from claims → `AuthenticatedUser`
 
 **File**: `backend/app/api/v1/routes/auth_routes.py`
-- [ ] Pass `workspace_id` from DB to `issue_jwt_token()` after creating/fetching workspace
+- [x] Pass `workspace_id` from DB to `issue_jwt_token()` after creating/fetching workspace
 
 ### 2.5 — Frontend type: add `workspace_id` to `AuthUser`
 **File**: `frontend/types/user.ts`
-- [ ] Add `workspace_id: string` field to `AuthUser` interface
+- [x] Add `workspace_id: string` field to `AuthUser` interface
 
 ---
 
@@ -126,38 +126,38 @@
 
 ### 3.1 — Remove admin-only gate from ingest endpoint
 **File**: `backend/app/api/v1/routes/ingest_routes.py`
-- [ ] Delete the `if not user.is_admin: return 403` block
-- [ ] Replace with: resolve workspace from `user.workspace_id`
-- [ ] Validate `WorkspacesRepository.get_by_id(user.workspace_id)` exists and belongs to user
-- [ ] Enforce source quota: `SourcesRepository.count_by_workspace(workspace_id) >= workspace.max_sources` → return `429 QUOTA_EXCEEDED`
-- [ ] Enforce chunk quota check pre-flight (estimate: count existing `ChunkModel` rows for workspace)
-- [ ] Set `namespace = workspace.slug` in the job record (override any client-sent namespace)
-- [ ] Set `workspace_id` on job record
+- [x] Delete the `if not user.is_admin: return 403` block
+- [x] Replace with: resolve workspace from `user.workspace_id`
+- [x] Validate `WorkspacesRepository.get_by_id(user.workspace_id)` exists and belongs to user
+- [x] Enforce source quota: `SourcesRepository.count_by_workspace(workspace_id) >= workspace.max_sources` → return `429 QUOTA_EXCEEDED`
+- [x] Enforce chunk quota check pre-flight (estimate: count existing `ChunkModel` rows for workspace)
+- [x] Set `namespace = workspace.slug` in the job record (override any client-sent namespace)
+- [x] Set `workspace_id` on job record
 
 ### 3.2 — Update ingest job record schema
 **File**: `backend/app/api/v1/routes/ingest_routes.py`
-- [ ] Add `workspace_id` and `namespace` to `record` dict stored in `ingest_jobs`
-- [ ] Remove `requested_by` (replace with `workspace_id`)
+- [x] Add `workspace_id` and `namespace` to `record` dict stored in `ingest_jobs`
+- [x] Remove `requested_by` (replace with `workspace_id`)
 
 ### 3.3 — Update `IngestRunModel` creation
 **File**: `backend/app/workers/tasks/ingest_tasks.py`
-- [ ] Pass `workspace_id` when creating `IngestRunModel`
-- [ ] Use `workspace.slug` as Pinecone upsert namespace
+- [x] Pass `workspace_id` when creating `IngestRunModel`
+- [x] Use `workspace.slug` as Pinecone upsert namespace
 
 ### 3.4 — Update `SourceModel` creation in ingestion
 **File**: `backend/app/workers/tasks/ingest_tasks.py` (or `ingest_service.py`)
-- [ ] Set `workspace_id` on every `SourceModel` created during indexing
-- [ ] Remove `visibility` field assignment
+- [x] Set `workspace_id` on every `SourceModel` created during indexing
+- [x] Remove `visibility` field assignment
 
 ### 3.5 — Update purge tasks to be workspace-scoped
 **File**: `backend/app/workers/tasks/purge_tasks.py`
-- [ ] Ensure purge queries filter by `workspace_id` so a user can only purge their own data
+- [x] Ensure purge queries filter by `workspace_id` so a user can only purge their own data
 
 ### 3.6 — Ingest route: accept `source_url` instead of raw `repo`
 **File**: `backend/app/api/v1/routes/ingest_routes.py`
-- [ ] Rename `payload["repo"]` → `payload["source_url"]` for GitHub URLs
-- [ ] Validate URL is a GitHub HTTPS URL (use existing `validators.py`)
-- [ ] Keep `branch` and `strategy` params
+- [x] Rename `payload["repo"]` → `payload["source_url"]` for GitHub URLs
+- [x] Validate URL is a GitHub HTTPS URL (use existing `validators.py`)
+- [x] Keep `branch` and `strategy` params
 
 ---
 
@@ -166,30 +166,30 @@
 
 ### 4.1 — Remove client-controlled namespace from query endpoint
 **File**: `backend/app/api/v1/routes/query_routes.py`
-- [ ] Delete `namespace = str(payload.get("namespace") or "dev")` line
-- [ ] Replace with: `namespace = user.workspace_id` → lookup workspace slug from DB or JWT claim
-- [ ] Optionally cache workspace slug in JWT claim (added in Phase 2.4)
+- [x] Delete `namespace = str(payload.get("namespace") or "dev")` line
+- [x] Replace with: `namespace = user.workspace_id` → lookup workspace slug from DB or JWT claim
+- [x] Optionally cache workspace slug in JWT claim (added in Phase 2.4)
 
 ### 4.2 — Remove client-controlled `index_version` from query endpoint
 **File**: `backend/app/api/v1/routes/query_routes.py`
-- [ ] `index_version` should come from workspace record, not client payload
-- [ ] Remove `int(payload.get("index_version") or 1)` line
+- [x] `index_version` should come from workspace record, not client payload
+- [x] Remove `int(payload.get("index_version") or 1)` line
 
 ### 4.3 — RBAC filter: always scope by workspace namespace
 **File**: `backend/app/api/v1/routes/query_routes.py`
-- [ ] Remove the `rbac_filter = {"visibility": "public"} if not user.is_admin else None` line
-- [ ] Replace with: `rbac_filter = None` (namespace isolation via Pinecone namespace is the enforcement layer)
-- [ ] Admins query by explicit workspace_id param (separate admin query route or namespace param)
+- [x] Remove the `rbac_filter = {"visibility": "public"} if not user.is_admin else None` line
+- [x] Replace with: `rbac_filter = None` (namespace isolation via Pinecone namespace is the enforcement layer)
+- [x] Admins query by explicit workspace_id param (separate admin query route or namespace param)
 
 ### 4.4 — Update `QueryRequest` model
 **File**: `backend/app/domain/services/query_service.py`
-- [ ] Add `workspace_id: str` to `QueryRequest`
-- [ ] Remove `rbac_filter` (or keep as optional override for future admin use)
+- [x] Add `workspace_id: str` to `QueryRequest`
+- [x] Remove `rbac_filter` (or keep as optional override for future admin use)
 
 ### 4.5 — Update `RBACService`
 **File**: `backend/app/domain/services/rbac_service.py`
-- [ ] Replace namespace-list-based access control with workspace slug check
-- [ ] `can_access_namespace(user, namespace)` → returns `True` if `namespace == user.workspace_id_slug`
+- [x] Replace namespace-list-based access control with workspace slug check
+- [x] `can_access_namespace(user, namespace)` → returns `True` if `namespace == user.workspace_id_slug`
 
 ---
 
@@ -198,25 +198,25 @@
 
 ### 5.1 — Query quota enforcement
 **File**: `backend/app/api/v1/routes/query_routes.py`
-- [ ] Before executing query: load workspace, check `query_count_this_month < monthly_query_cap`
-- [ ] Increment per-workspace query counter in Redis (`workspace:{id}:queries:{YYYY-MM}`)
-- [ ] Return `429 QUOTA_EXCEEDED` with clear message if over cap
+- [x] Before executing query: load workspace, check `query_count_this_month < monthly_query_cap`
+- [x] Increment per-workspace query counter in Redis (`workspace:{id}:queries:{YYYY-MM}`)
+- [x] Return `429 QUOTA_EXCEEDED` with clear message if over cap
 
 ### 5.2 — `CostService`: per-workspace token budget
 **File**: `backend/app/domain/services/cost_service.py`
-- [ ] Replace global `monthly_token_budget` with per-workspace override
-- [ ] Accept `workspace_id` in budget check
-- [ ] Store per-workspace token usage in Redis (`workspace:{id}:tokens:{YYYY-MM}`)
+- [x] Replace global `monthly_token_budget` with per-workspace override
+- [x] Accept `workspace_id` in budget check
+- [x] Store per-workspace token usage in Redis (`workspace:{id}:tokens:{YYYY-MM}`)
 
 ### 5.3 — Workspace quota API endpoint
 **File**: `backend/app/api/v1/routes/workspace_routes.py` *(new file)*
-- [ ] `GET /workspace/me` — returns current user's workspace: slug, quotas, current usage (sources count, chunk count, queries this month)
-- [ ] `GET /workspace/sources` — list all sources in workspace (file_path, repo, status, created_at)
-- [ ] `DELETE /workspace/sources/{source_id}` — delete a source and its vectors from Pinecone + DB
+- [x] `GET /workspace/me` — returns current user's workspace: slug, quotas, current usage (sources count, chunk count, queries this month)
+- [x] `GET /workspace/sources` — list all sources in workspace (file_path, repo, status, created_at)
+- [x] `DELETE /workspace/sources/{source_id}` — delete a source and its vectors from Pinecone + DB
 
 ### 5.4 — Register workspace router
 **File**: `backend/app/api/v1/router.py`
-- [ ] `api_router.include_router(workspace_router)`
+- [x] `api_router.include_router(workspace_router)`
 
 ---
 
@@ -225,66 +225,66 @@
 
 ### 6.1 — Signup page
 **File**: `frontend/app/(auth)/signup/page.tsx` *(new file)*
-- [ ] Form: email + password + confirm password
-- [ ] Client-side validation: email format, password ≥ 8 chars, passwords match
-- [ ] On submit: `POST /api/v1/auth/register` via `api-client.ts`
-- [ ] On success: `setToken(token)` → `router.replace("/")`
-- [ ] On 409: show "Email already registered. Log in instead."
-- [ ] Link from login page: "Don't have an account? Sign up"
+- [x] Form: email + password + confirm password
+- [x] Client-side validation: email format, password ≥ 8 chars, passwords match
+- [x] On submit: `POST /api/v1/auth/register` via `api-client.ts`
+- [x] On success: `setToken(token)` → `router.replace("/")`
+- [x] On 409: show "Email already registered. Log in instead."
+- [x] Link from login page: "Don't have an account? Sign up"
 
 ### 6.2 — Add `postRegister` to API client
 **File**: `frontend/lib/api-client.ts`
-- [ ] Add `postRegister(email, password): Promise<{ access_token: string }>` function
-- [ ] Follow same pattern as existing `postFeedback`
+- [x] Add `postRegister(email, password): Promise<{ access_token: string }>` function
+- [x] Follow same pattern as existing `postFeedback`
 
 ### 6.3 — Update login page: add signup link
 **File**: `frontend/app/(auth)/login/page.tsx`
-- [ ] Add "Don't have an account? Sign up →" link pointing to `/signup`
+- [x] Add "Don't have an account? Sign up →" link pointing to `/signup`
 
 ### 6.4 — Sources dashboard page
 **File**: `frontend/app/(query)/sources/page.tsx` *(new file)*
-- [ ] Show workspace info: slug, quota bars (sources used / max, chunks used / max, queries this month / cap)
-- [ ] List all connected sources: repo name, file count, status badge (indexed/pending/failed), last indexed date
-- [ ] "Add Source" button → opens `AddSourceModal`
-- [ ] Per-source "Delete" button with confirmation
+- [x] Show workspace info: slug, quota bars (sources used / max, chunks used / max, queries this month / cap)
+- [x] List all connected sources: repo name, file count, status badge (indexed/pending/failed), last indexed date
+- [x] "Add Source" button → opens `AddSourceModal`
+- [x] Per-source "Delete" button with confirmation
 
 ### 6.5 — Add Source modal component
 **File**: `frontend/components/workspace/AddSourceModal.tsx` *(new file)*
-- [ ] Input: GitHub repo URL (validate `https://github.com/` prefix client-side)
-- [ ] Select: branch (`main` default)
-- [ ] Select: strategy (`full` / `incremental`)
-- [ ] Submit → `POST /api/v1/ingest`
-- [ ] Success: close modal, refetch sources list
-- [ ] Quota exceeded: show friendly error
+- [x] Input: GitHub repo URL (validate `https://github.com/` prefix client-side)
+- [x] Select: branch (`main` default)
+- [x] Select: strategy (`full` / `incremental`)
+- [x] Submit → `POST /api/v1/ingest`
+- [x] Success: close modal, refetch sources list
+- [x] Quota exceeded: show friendly error
 
 ### 6.6 — Workspace API client functions
 **File**: `frontend/lib/api-client.ts`
-- [ ] `getWorkspaceMe(authToken): Promise<WorkspaceInfo>` → `GET /api/v1/workspace/me`
-- [ ] `getWorkspaceSources(authToken): Promise<Source[]>` → `GET /api/v1/workspace/sources`
-- [ ] `deleteWorkspaceSource(sourceId, authToken): Promise<void>` → `DELETE /api/v1/workspace/sources/{id}`
-- [ ] `postIngest(payload, authToken): Promise<IngestJob>` → `POST /api/v1/ingest`
+- [x] `getWorkspaceMe(authToken): Promise<WorkspaceInfo>` → `GET /api/v1/workspace/me`
+- [x] `getWorkspaceSources(authToken): Promise<Source[]>` → `GET /api/v1/workspace/sources`
+- [x] `deleteWorkspaceSource(sourceId, authToken): Promise<void>` → `DELETE /api/v1/workspace/sources/{id}`
+- [x] `postIngest(payload, authToken): Promise<IngestJob>` → `POST /api/v1/ingest`
 
 ### 6.7 — Workspace types
 **File**: `frontend/types/workspace.ts` *(new file)*
-- [ ] `WorkspaceInfo` interface (slug, display_name, max_sources, max_chunks, monthly_query_cap, current usage counts)
-- [ ] `Source` interface (id, repo, file_path, source_url, status, created_at)
-- [ ] `IngestJob` interface (job_id, repo, status)
+- [x] `WorkspaceInfo` interface (slug, display_name, max_sources, max_chunks, monthly_query_cap, current usage counts)
+- [x] `Source` interface (id, repo, file_path, source_url, status, created_at)
+- [x] `IngestJob` interface (job_id, repo, status)
 
 ### 6.8 — Sidebar: add "My Sources" nav link
 **File**: `frontend/components/layout/Sidebar.tsx`
-- [ ] Add `{ id: "sources", label: "My Sources", href: "/sources", icon: Database }` to `USER_NAV`
-- [ ] Remove hardcoded suggestion strings that reference old internal content ("company wiki", "runbooks")
+- [x] Add `{ id: "sources", label: "My Sources", href: "/sources", icon: Database }` to `USER_NAV`
+- [x] Remove hardcoded suggestion strings that reference old internal content ("company wiki", "runbooks")
 
 ### 6.9 — Update hero copy on query page
 **File**: `frontend/app/(query)/page.tsx`
-- [ ] Change hero subtitle from internal-tool copy to product copy:
+- [x] Change hero subtitle from internal-tool copy to product copy:
   - Title: `"Ask your codebase anything."`
   - Subtitle: `"Connect a GitHub repo, then ask questions and get grounded answers with source citations."`
-- [ ] Update suggestion chips to be generic:
+- [x] Update suggestion chips to be generic:
   - `"How does authentication work?"`
   - `"What does the ingestion pipeline do?"`
   - `"Where is the database configured?"`
-- [ ] If user has no sources yet: show CTA banner "You haven't connected any repos yet. → Add your first source"
+- [x] If user has no sources yet: show CTA banner "You haven't connected any repos yet. → Add your first source"
 
 ---
 
@@ -293,16 +293,16 @@
 
 ### 7.1 — Update `useQuery` hook: remove namespace param
 **File**: `frontend/hooks/useQuery.ts`
-- [ ] Remove any `namespace` field from query payload sent to `/api/v1/query`
-- [ ] Remove `index_version` field from query payload (backend resolves from workspace)
+- [x] Remove any `namespace` field from query payload sent to `/api/v1/query`
+- [x] Remove `index_version` field from query payload (backend resolves from workspace)
 
 ### 7.2 — Update `QueryInput` if it exposes namespace
 **File**: `frontend/components/query/QueryInput.tsx`
-- [ ] Remove any namespace or index_version inputs if present
+- [x] Remove any namespace or index_version inputs if present
 
 ### 7.3 — No-sources empty state
 **File**: `frontend/app/(query)/page.tsx`
-- [ ] If `GET /workspace/sources` returns empty array → show empty state with "Add Source" button instead of suggestion chips
+- [x] If `GET /workspace/sources` returns empty array → show empty state with "Add Source" button instead of suggestion chips
 
 ---
 
@@ -311,10 +311,10 @@
 
 ### 8.1 — Remove `DEFAULT_NAMESPACE=dev` from env
 **File**: `infra/docker/docker-compose.yml`
-- [ ] Remove `DEFAULT_NAMESPACE` env var (namespace now = workspace slug, derived at runtime)
+- [x] Remove `DEFAULT_NAMESPACE` env var (namespace now = workspace slug, derived at runtime)
 
 **File**: `backend/app/core/config.py`
-- [ ] Remove `default_namespace` field (or keep with deprecation comment; it will be unused)
+- [x] Remove `default_namespace` field (or keep with deprecation comment; it will be unused)
 
 ### 8.2 — Add `REGISTRATION_ENABLED` feature flag
 **File**: `infra/docker/docker-compose.yml`
@@ -324,18 +324,18 @@
 
 ### 8.3 — Update seed_db.py
 **File**: `backend/scripts/seed_db.py`
-- [ ] Remove `INSECURE-PLAIN:` password hashing
-- [ ] Auto-create a `WorkspaceModel` for each seeded user
-- [ ] Use bcrypt for passwords
+- [x] Remove `INSECURE-PLAIN:` password hashing
+- [x] Auto-create a `WorkspaceModel` for each seeded user
+- [x] Use bcrypt for passwords
 
 ### 8.4 — Migration runner in Docker entrypoint
 **File**: `infra/docker/Dockerfile.api`
-- [ ] Confirm `alembic upgrade head` runs before `uvicorn` start (already present — verify)
-- [ ] Ensure migration `0003_add_workspaces.py` is included
+- [x] Confirm `alembic upgrade head` runs before `uvicorn` start (already present — verify)
+- [x] Ensure migration `0003_add_workspaces.py` is included
 
 ### 8.5 — Caddy config: no changes needed
 **File**: `infra/caddy/Caddyfile`
-- [ ] No changes — `/api/*` → FastAPI still applies. Confirm `/api/v1/workspace/*` is not blocked.
+- [x] No changes — `/api/*` → FastAPI still applies. Confirm `/api/v1/workspace/*` is not blocked.
 
 ### 8.6 — Prometheus metrics: add workspace label
 **File**: `backend/app/core/metrics.py`
@@ -354,8 +354,8 @@
 
 ### 9.2 — Update unit tests for query route
 **File**: `backend/tests/unit/` *(find existing query tests)*
-- [ ] Remove tests that pass `namespace` in client payload
-- [ ] Add test: namespace derived from JWT workspace_id claim
+- [x] Remove tests that pass `namespace` in client payload
+- [x] Add test: namespace derived from JWT workspace_id claim
 
 ### 9.3 — Update unit tests for ingest route
 **File**: `backend/tests/unit/` *(find existing ingest tests)*
@@ -364,7 +364,7 @@
 
 ### 9.4 — Integration test: full self-serve flow
 **File**: `backend/tests/integration/test_self_serve_flow.py` *(new file)*
-- [ ] Register → Login → Ingest → Query → Delete Source full round-trip test
+- [x] Register → Login → Ingest → Query → Delete Source full round-trip test
 
 ### 9.5 — Update golden questions dataset
 **File**: `evaluation/datasets/golden_questions_v1.json`
@@ -386,8 +386,8 @@
 
 ### 10.1 — Admin: list all workspaces
 **File**: `backend/app/api/v1/routes/admin_routes.py`
-- [ ] `GET /admin/workspaces` — list all workspaces with owner email, source count, chunk count, query count
-- [ ] `DELETE /admin/workspaces/{workspace_id}` — delete workspace + cascade sources, chunks, Pinecone namespace
+- [x] `GET /admin/workspaces` — list all workspaces with owner email, source count, chunk count, query count
+- [x] `DELETE /admin/workspaces/{workspace_id}` — delete workspace + cascade sources, chunks, Pinecone namespace
 
 ### 10.2 — Admin: ingest now requires workspace_id
 **File**: `backend/app/api/v1/routes/ingest_routes.py`
@@ -396,12 +396,12 @@
 
 ### 10.3 — Admin frontend: workspace list page
 **File**: `frontend/app/admin/workspaces/page.tsx` *(new file)*
-- [ ] Table: workspace slug, owner email, sources count, chunks count, monthly queries, created_at
-- [ ] Delete button per workspace
+- [x] Table: workspace slug, owner email, sources count, chunks count, monthly queries, created_at
+- [x] Delete button per workspace
 
 ### 10.4 — Admin sidebar: add Workspaces link
 **File**: `frontend/components/layout/AdminShell.tsx`
-- [ ] Add "Workspaces" nav item → `/admin/workspaces`
+- [x] Add "Workspaces" nav item → `/admin/workspaces`
 
 ### 10.5 — Update `IngestForm` for admin: add workspace_id field
 **File**: `frontend/components/admin/IngestForm.tsx`
