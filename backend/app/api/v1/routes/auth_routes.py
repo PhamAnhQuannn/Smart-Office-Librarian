@@ -1,7 +1,8 @@
-"""Authentication routes — login and self-registration endpoints.
+"""Authentication routes — login, self-registration, and logout endpoints.
 
 POST /auth/login     accepts {email, password} and returns a signed JWT.
 POST /auth/register  creates a new user + workspace and returns a signed JWT.
+POST /auth/logout    accepts a valid JWT and returns 204 (client discards the token).
 """
 
 from __future__ import annotations
@@ -10,6 +11,7 @@ import os
 
 import bcrypt as _bcrypt
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 from pydantic import BaseModel, EmailStr, field_validator
 from sqlalchemy.orm import Session
 
@@ -129,3 +131,15 @@ def register(
         workspace_slug=workspace.slug,
     )
     return TokenResponse(access_token=token)
+
+
+@router.post("/logout", status_code=204)
+def logout(
+    db: Session = Depends(get_db_session),  # noqa: ARG001 — kept for future audit-log hook
+) -> Response:
+    """Invalidate the current session.
+
+    JWTs are stateless — the client must discard the token.
+    This endpoint exists as a clean hook for future audit logging or token blocklisting.
+    """
+    return Response(status_code=204)

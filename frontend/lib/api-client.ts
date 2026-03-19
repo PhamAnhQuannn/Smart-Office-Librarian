@@ -266,3 +266,57 @@ export async function adminUpdateWorkspaceLimits(
 	);
 }
 
+// ─── History ─────────────────────────────────────────────────────────────────
+
+export interface HistoryItem {
+	id: string;
+	query_text: string;
+	confidence: string;
+	mode: string;
+	sources_count: number;
+	created_at: string | null;
+}
+
+export async function getHistory(
+	authToken: string,
+	limit = 50,
+): Promise<{ items: HistoryItem[]; total: number }> {
+	const url = buildApiUrl(`/api/v1/history?limit=${limit}`);
+	const response = await fetch(url, { headers: createHeaders(authToken) });
+	if (response.ok) return response.json() as Promise<{ items: HistoryItem[]; total: number }>;
+	const errorPayload = await parseApiError(response);
+	throw new ApiClientError(
+		errorPayload?.message ?? "Failed to load history.",
+		response.status,
+		errorPayload?.error_code,
+	);
+}
+
+export async function deleteHistoryItem(id: string, authToken: string): Promise<void> {
+	const response = await fetch(
+		buildApiUrl(`/api/v1/history/${encodeURIComponent(id)}`),
+		{ method: "DELETE", headers: createHeaders(authToken) },
+	);
+	if (response.ok || response.status === 404) return;
+	const errorPayload = await parseApiError(response);
+	throw new ApiClientError(
+		errorPayload?.message ?? "Failed to delete history item.",
+		response.status,
+		errorPayload?.error_code,
+	);
+}
+
+export async function clearHistory(authToken: string): Promise<void> {
+	const response = await fetch(
+		buildApiUrl("/api/v1/history"),
+		{ method: "DELETE", headers: createHeaders(authToken) },
+	);
+	if (response.ok) return;
+	const errorPayload = await parseApiError(response);
+	throw new ApiClientError(
+		errorPayload?.message ?? "Failed to clear history.",
+		response.status,
+		errorPayload?.error_code,
+	);
+}
+

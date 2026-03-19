@@ -9,7 +9,7 @@ from typing import Annotated, Any
 from fastapi import Header, Request
 from fastapi.responses import JSONResponse, Response
 
-from app.api.v1.dependencies.auth import get_current_user
+from app.api.v1.dependencies.auth import get_current_user, get_optional_user
 from app.core.logging import safe_error_message, sanitize_log_data
 from app.core.security import AuthenticatedUser
 from app.domain.services.health_service import HealthService
@@ -49,6 +49,15 @@ def get_authenticated_user(
 ) -> AuthenticatedUser:
     jwt_secret: str | None = getattr(request.app.state, "jwt_secret", None)
     return get_current_user(authorization or "", jwt_secret=jwt_secret)
+
+
+def get_optional_authenticated_user(
+    request: Request,
+    authorization: Annotated[str | None, Header(alias="Authorization")] = None,
+) -> "AuthenticatedUser | None":
+    """Like get_authenticated_user but returns None for unauthenticated requests (guest mode)."""
+    jwt_secret: str | None = getattr(request.app.state, "jwt_secret", None)
+    return get_optional_user(authorization or "", jwt_secret=jwt_secret)
 
 
 def build_error_payload(

@@ -3,9 +3,52 @@
 ## 0) Header Metadata
 - Project: Smart Office Librarian (Embedlyzer)
 - Architecture Version: v1.5
-- Status: **Code complete — pending operator provisioning**
-- Last Updated: 2026-03-15 UTC (session 5)
+- Status: **Phase 11 planning complete — ready to implement guest mode + history**
+- Last Updated: 2026-03-18 UTC (session 6)
 - Owner: Engineering Team
+
+---
+
+## Session 6 Checkpoint — 2026-03-18 UTC
+
+### Design analysis: Guest mode + User history (Phase 11)
+
+Reviewed proposed user model (guest → signed-in → admin) and compared against current codebase. Full plan written at [docs/00_backbone/PHASE_11_PLAN.md](docs/00_backbone/PHASE_11_PLAN.md).
+
+**Commits this session**: `4c551c19` (v0.8.1-cleanup — seed_db security fix + query round-trip test)
+
+#### What was confirmed already aligned (no change needed)
+
+| Area | Status |
+|------|--------|
+| Frontend route groups `(query)/`, `(auth)/`, `admin/` | ✅ Three separate groups with separate layouts |
+| Admin separate layout + role-guard | ✅ `AdminShell`, `user.is_admin` checks throughout |
+| RBAC (admin vs user) | ✅ `UserRole` enum, enforced on all admin routes |
+| JWT auth (register + login) | ✅ Working and tested |
+| Workspace isolation (Pinecone namespaces) | ✅ Complete from Phase 1–10 |
+| History data collection | ✅ `QueryLogModel` already stores `user_id`, `query_text`, `sources`, `confidence` on every signed-in query |
+| Backend `/api/v1/admin/*` separation | ✅ All admin APIs cleanly separated |
+| Token in sessionStorage (tab-scoped) | ✅ Correct baseline for guest UX |
+
+#### What is missing — Phase 11 work items
+
+| ID | Item | Priority | File(s) |
+|----|------|----------|---------|
+| 11.1a | `get_optional_user` dependency (no 401 for guests) | P0 | `dependencies/auth.py` |
+| 11.1b | Query route: accept optional user, guest namespace | P0 | `routes/query_routes.py` |
+| 11.1c | Remove hard auth gate from `AppShell.tsx` | P0 | `components/layout/AppShell.tsx` |
+| 11.1d | Move auth guard to `sources/page.tsx` (page-level) | P1 | `app/(query)/sources/page.tsx` |
+| 11.1e | "Sign in to save history" guest banner on query page | P1 | `app/(query)/page.tsx` |
+| 11.1f | Client-side guest history in `sessionStorage` | P1 | `app/(query)/page.tsx` |
+| 11.2a | `GET/DELETE /api/v1/history` routes | P1 | `routes/history_routes.py` (new) |
+| 11.2b | `QueryLogsRepository` list/delete methods | P1 | `db/repositories/query_logs_repo.py` |
+| 11.2c | Register history router | P1 | `api/v1/router.py` |
+| 11.2d | `getHistory`, `deleteHistoryItem`, `clearHistory` API client functions | P1 | `lib/api-client.ts` |
+| 11.2e | `history/page.tsx` real implementation | P1 | `app/(query)/history/page.tsx` |
+| 11.3 | `POST /api/v1/auth/logout` endpoint (stateless 204) | P2 | `routes/auth_routes.py` |
+| 11.4 | Guest session API (server-side TTL) | Deferred | — |
+
+**No new DB tables needed** — `QueryLogModel.user_id` is already `nullable=True`.
 
 ---
 

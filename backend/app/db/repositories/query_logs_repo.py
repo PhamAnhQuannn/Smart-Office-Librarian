@@ -116,5 +116,24 @@ try:
             )
             return list(self._session.scalars(stmt))
 
+        def delete_by_id_and_user(self, log_id: str, user_id: str) -> bool:
+            """Delete a single query log owned by user_id. Returns True if deleted, False if not found."""
+            from sqlalchemy import delete as sa_delete
+            result = self._session.execute(
+                sa_delete(QueryLogModel).where(
+                    QueryLogModel.id == log_id,
+                    QueryLogModel.user_id == user_id,
+                )
+            )
+            return result.rowcount > 0
+
+        def delete_all_by_user(self, user_id: str) -> int:
+            """Delete all query logs for user_id. Returns count deleted."""
+            from sqlalchemy import delete as sa_delete
+            result = self._session.execute(
+                sa_delete(QueryLogModel).where(QueryLogModel.user_id == user_id)
+            )
+            return result.rowcount
+
 except ImportError:
     pass  # SQLAlchemy not installed in this environment

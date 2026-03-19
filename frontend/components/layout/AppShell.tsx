@@ -2,7 +2,6 @@
 
 import { CheckCircle2, Info, X, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { clearToken, isAuthenticated, isTokenExpired } from "../../lib/auth";
 import { Sidebar } from "./Sidebar";
 import { ToastProvider, useToast, type ToastItem } from "../../context/toast-context";
@@ -50,21 +49,19 @@ function ToastOverlay(): JSX.Element {
 
 // ── Auth guard + shell ───────────────────────────────────────────────────────
 
-function AuthenticatedShell({ children }: { children: React.ReactNode }): JSX.Element | null {
-  const router = useRouter();
-  const [ready, setReady] = useState(false);
+function AppShellInner({ children }: { children: React.ReactNode }): JSX.Element {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated() || isTokenExpired()) {
+    // Clear an expired token silently — but do NOT redirect. Guests are welcome.
+    if (isAuthenticated() && isTokenExpired()) {
       clearToken();
-      router.replace("/login");
-    } else {
-      setReady(true);
     }
-  }, [router]);
+    setReady(true);
+  }, []);
 
-  if (!ready) return null;
+  if (!ready) return <></>;
 
   return (
     <div className="flex h-screen bg-slate-50 text-slate-900 overflow-hidden">
@@ -100,7 +97,7 @@ function AuthenticatedShell({ children }: { children: React.ReactNode }): JSX.El
 export function AppShell({ children }: { children: React.ReactNode }): JSX.Element {
   return (
     <ToastProvider>
-      <AuthenticatedShell>{children}</AuthenticatedShell>
+      <AppShellInner>{children}</AppShellInner>
     </ToastProvider>
   );
 }

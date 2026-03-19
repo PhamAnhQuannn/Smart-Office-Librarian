@@ -53,7 +53,7 @@ def get_current_user(
     """Resolve an AuthenticatedUser from an Authorization header value.
 
     jwt_secret: override JWT_SECRET env var (used in tests).
-    Raises AuthenticationError (→ HTTP 401) on any authentication failure.
+    Raises AuthenticationError (→ HTTP 401 UNAUTHENTICATED) on any authentication failure.
     """
     if not authorization or not authorization.strip():
         raise AuthenticationError("Missing Authorization header")
@@ -81,3 +81,21 @@ def get_current_user(
         workspace_id=workspace_id,
         workspace_slug=workspace_slug,
     )
+
+
+def get_optional_user(
+    authorization: str,
+    *,
+    jwt_secret: str | None = None,
+) -> AuthenticatedUser | None:
+    """Like get_current_user but returns None instead of raising for unauthenticated requests.
+
+    Use this for endpoints that are accessible to both guests and signed-in users.
+    Returns None when the Authorization header is absent OR the token is invalid/expired.
+    """
+    if not authorization or not authorization.strip():
+        return None
+    try:
+        return get_current_user(authorization, jwt_secret=jwt_secret)
+    except (AuthenticationError, Exception):  # noqa: BLE001
+        return None

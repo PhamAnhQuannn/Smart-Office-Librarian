@@ -16,6 +16,7 @@ from app.api.v1.routes.admin_routes import router as admin_router
 from app.api.v1.routes.auth_routes import router as auth_router
 from app.api.v1.routes.feedback_routes import FeedbackSubmission, submit_feedback
 from app.api.v1.routes.health_routes import router as health_router
+from app.api.v1.routes.history_routes import router as history_router
 from app.api.v1.routes.ingest_routes import router as ingest_router
 from app.api.v1.routes.metrics_routes import get_metrics_response
 from app.api.v1.routes.query_routes import router as query_router
@@ -28,6 +29,7 @@ api_router.include_router(auth_router)
 api_router.include_router(query_router)
 api_router.include_router(ingest_router)
 api_router.include_router(workspace_router)
+api_router.include_router(history_router)
 api_router.include_router(health_router)
 api_router.include_router(admin_router)
 ops_router.include_router(health_router)

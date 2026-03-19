@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.api.v1.dependencies.settings import (
     build_error_response,
     get_authenticated_user,
+    get_optional_authenticated_user,
     get_runtime_app,
     response_from_contract,
 )
@@ -61,7 +62,7 @@ def _get_query_service(request: Request) -> QueryService | None:
 def query_endpoint(
     payload: dict[str, Any],
     request: Request,
-    user: Any = Depends(get_authenticated_user),
+    user: Any = Depends(get_optional_authenticated_user),
     runtime_app: Any = Depends(get_runtime_app),
     db: Session = Depends(get_db_session),
 ):
@@ -75,11 +76,14 @@ def query_endpoint(
 
     retrieval_only = bool(payload.get("retrieval_only", False))
 
-    # Namespace is derived from the user's workspace — clients cannot override it.
-    namespace = user.workspace_slug or user.workspace_id or "dev"
+    # Namespace: derive from workspace for signed-in users; use shared guest namespace otherwise.
+    if user is not None:
+        namespace = user.workspace_slug or user.workspace_id or "dev"
+    else:
+        namespace = "guest"
 
-    # ── Monthly query quota ──────────────────────────────────────────────────
-    if user.workspace_id and db is not None:
+    # ── Monthly query quota (signed-in users only) ───────────────────────────
+    if user is not None and user.workspace_id and db is not None:
         try:
             from app.db.repositories.workspaces_repo import WorkspacesRepository
             ws = WorkspacesRepository(db).get_by_id(user.workspace_id)
@@ -97,6 +101,15 @@ def query_endpoint(
 
     # Use the real QueryService pipeline when wired up in app state.
     query_service: QueryService | None = _get_query_service(request)
+
+    # Build a minimal guest user object for runtime_app.query() when unauthenticated.
+    from app.core.security import AuthenticatedUser, UserRole
+    effective_user = user if user is not None else AuthenticatedUser(
+        user_id="guest",
+        role=UserRole.USER,
+        workspace_id="",
+        workspace_slug="guest",
+    )
 
     if query_service is not None:
         query_request = QueryRequest(
@@ -117,7 +130,7 @@ def query_endpoint(
             )
 
         response = runtime_app.query(
-            user=user,
+            user=effective_user,
             mode=pipeline_result.get("mode", "answer"),
             refusal_reason=pipeline_result.get("refusal_reason"),
             sources=pipeline_result.get("sources", []),
@@ -129,7 +142,7 @@ def query_endpoint(
         # Fallback: QueryService not yet wired — use stub data so tests pass.
         logger.warning("QueryService not wired in app.state — returning stub result")
         response = runtime_app.query(
-            user=user,
+            user=effective_user,
             mode="retrieval_only" if retrieval_only else "answer",
             refusal_reason=None,
             sources=[

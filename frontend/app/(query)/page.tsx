@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { PlusCircle } from "lucide-react";
 import { QueryHeader } from "../../components/query/QueryHeader";
 import { QueryInput } from "../../components/query/QueryInput";
@@ -15,13 +16,33 @@ const SUGGESTIONS = [
   "What does the onboarding doc say?",
 ];
 
+const GUEST_HISTORY_KEY = "embed_guest_history";
+const GUEST_HISTORY_MAX = 20;
+
 export default function QueryPage(): JSX.Element {
-  const { token, user } = useAuth();
+  const { token, user, isLoggedIn } = useAuth();
   const hasWorkspace = Boolean(user?.workspace_id);
   const { state, isStreaming, queriesRemaining, showRateWarning, submitQuery, sendFeedback, resetQuery } =
     useQuery();
 
   const hasResult = state.status !== "idle" || isStreaming;
+
+  // Persist guest queries to sessionStorage
+  useEffect(() => {
+    if (isLoggedIn || state.status !== "complete") return;
+    try {
+      const existing: unknown[] = JSON.parse(sessionStorage.getItem(GUEST_HISTORY_KEY) ?? "[]");
+      const entry = {
+        query_text: state.answer?.slice(0, 120) ?? "",
+        response_snippet: state.answer?.slice(0, 200) ?? "",
+        timestamp: new Date().toISOString(),
+      };
+      const updated = [entry, ...(Array.isArray(existing) ? existing : [])].slice(0, GUEST_HISTORY_MAX);
+      sessionStorage.setItem(GUEST_HISTORY_KEY, JSON.stringify(updated));
+    } catch {
+      // sessionStorage unavailable — ignore
+    }
+  }, [isLoggedIn, state.status, state.answer]);
 
   return (
     <div className="flex flex-col h-full">
@@ -38,6 +59,16 @@ export default function QueryPage(): JSX.Element {
               <p className="text-slate-400 text-lg max-w-md mx-auto leading-snug">
                 Grounded answers from every repo you&apos;ve indexed — no hallucinations.
               </p>
+            </div>
+          )}
+
+          {/* Guest banner */}
+          {!isLoggedIn && !hasResult && (
+            <div className="flex items-center justify-between gap-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-4 py-3 text-sm">
+              <span>You&apos;re browsing as a guest. Queries are not saved.</span>
+              <Link href="/login" className="shrink-0 font-bold underline hover:text-amber-900">
+                Sign in
+              </Link>
             </div>
           )}
 
