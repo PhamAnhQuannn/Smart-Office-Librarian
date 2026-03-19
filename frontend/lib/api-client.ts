@@ -320,3 +320,50 @@ export async function clearHistory(authToken: string): Promise<void> {
 	);
 }
 
+// ─── Admin — Budget ───────────────────────────────────────────────────────────
+
+export interface BudgetWorkspace {
+	id: string;
+	slug: string;
+	display_name: string;
+	monthly_query_cap: number;
+	used_this_month: number;
+	max_sources: number;
+	max_chunks: number;
+}
+
+export async function adminGetBudget(authToken: string): Promise<{ workspaces: BudgetWorkspace[] }> {
+	const response = await fetch(buildApiUrl("/api/v1/admin/budget"), {
+		headers: createHeaders(authToken),
+	});
+	if (response.ok) return response.json() as Promise<{ workspaces: BudgetWorkspace[] }>;
+	const errorPayload = await parseApiError(response);
+	throw new ApiClientError(
+		errorPayload?.message ?? "Failed to load budget.",
+		response.status,
+		errorPayload?.error_code,
+	);
+}
+
+export async function adminUpdateBudget(
+	workspaceId: string,
+	monthlyQueryCap: number,
+	authToken: string,
+): Promise<void> {
+	const response = await fetch(
+		buildApiUrl(`/api/v1/admin/budget/${encodeURIComponent(workspaceId)}`),
+		{
+			method: "PUT",
+			headers: createHeaders(authToken),
+			body: JSON.stringify({ monthly_query_cap: monthlyQueryCap }),
+		},
+	);
+	if (response.ok) return;
+	const errorPayload = await parseApiError(response);
+	throw new ApiClientError(
+		errorPayload?.message ?? "Failed to update budget.",
+		response.status,
+		errorPayload?.error_code,
+	);
+}
+

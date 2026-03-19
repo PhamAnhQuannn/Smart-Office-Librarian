@@ -298,6 +298,167 @@ def list_audit_logs(
         return build_error_response(status_code=500, error_code="INTERNAL_ERROR", message=str(exc))
 
 
+@router.get("/evaluation/summary", summary="Analytics summary from query logs")
+def get_evaluation_summary(
+    range: str = "7d",
+    request: Request = None,  # type: ignore[assignment]
+    user: AuthenticatedUser = Depends(get_authenticated_user),
+    db: Session = Depends(get_db_session),
+) -> JSONResponse:
+    """Return aggregated analytics from the query_logs table for the given date range."""
+    try:
+        _require_admin(user)
+    except AdminRouteError as exc:
+        return build_error_response(status_code=exc.status_code, error_code=exc.error_code, message=exc.message)
+
+    from collections import Counter
+    from datetime import datetime, timedelta, timezone
+
+    from app.db.models import QueryLogModel
+
+    now = datetime.now(timezone.utc)
+    since: datetime | None
+    if range == "7d":
+        since = now - timedelta(days=7)
+        days_count = 7
+    elif range == "30d":
+        since = now - timedelta(days=30)
+        days_count = 30
+    else:
+        since = None
+        days_count = 30
+
+    query = db.query(QueryLogModel)
+    if since is not None:
+        query = query.filter(QueryLogModel.created_at >= since)
+    logs = query.all()
+
+    total = len(logs)
+    confidence_high = sum(1 for lg in logs if (lg.confidence or "").upper() == "HIGH")
+    confidence_medium = sum(1 for lg in logs if (lg.confidence or "").upper() == "MEDIUM")
+    confidence_refused = sum(1 for lg in logs if (lg.confidence or "").upper() in ("REFUSED", "LOW"))
+    pass_count = confidence_high + confidence_medium
+    fail_count = confidence_refused
+
+    token_usage = sum(
+        (lg.prompt_tokens or 0) + (lg.completion_tokens or 0) for lg in logs
+    )
+
+    latencies = [lg.latency_ms for lg in logs if lg.latency_ms is not None]
+    latencies_sorted = sorted(latencies)
+    p50_ms: float | None = None
+    p95_ms: float | None = None
+    if latencies_sorted:
+        p50_ms = latencies_sorted[len(latencies_sorted) // 2]
+        p95_ms = latencies_sorted[min(int(len(latencies_sorted) * 0.95), len(latencies_sorted) - 1)]
+
+    # Daily volume array (oldest → newest)
+    day_counter: Counter = Counter()
+    for lg in logs:
+        if lg.created_at:
+            day_counter[lg.created_at.date()] += 1
+    volume_by_day = [
+        day_counter.get((now - timedelta(days=days_count - 1 - i)).date(), 0)
+        for i in range(days_count)
+    ]
+
+    # Latency sparkline (last 14 average-by-day)
+    sparkline_days = 14
+    sparkline: list[float] = []
+    for i in range(sparkline_days):
+        d = (now - timedelta(days=sparkline_days - 1 - i)).date()
+        day_lats = [lg.latency_ms for lg in logs if lg.latency_ms and lg.created_at and lg.created_at.date() == d]
+        sparkline.append(sum(day_lats) / len(day_lats) if day_lats else 0.0)
+
+    return JSONResponse(status_code=200, content={
+        "total": total,
+        "pass_count": pass_count,
+        "fail_count": fail_count,
+        "pass_rate": round(pass_count / total, 3) if total > 0 else 0.0,
+        "namespace": "all",
+        "index_version": None,
+        "token_usage": token_usage,
+        "token_budget": 1_000_000,
+        "confidence_high": confidence_high,
+        "confidence_medium": confidence_medium,
+        "confidence_refused": confidence_refused,
+        "volume_by_day": volume_by_day,
+        "p50_ms": round(p50_ms, 1) if p50_ms is not None else None,
+        "p95_ms": round(p95_ms, 1) if p95_ms is not None else None,
+        "latency_sparkline": sparkline,
+    })
+
+
+@router.get("/budget", summary="List all workspaces with budget limits")
+def list_budget(
+    user: AuthenticatedUser = Depends(get_authenticated_user),
+    db: Session = Depends(get_db_session),
+) -> JSONResponse:
+    """Return all workspaces with their monthly query cap and current-month usage."""
+    try:
+        _require_admin(user)
+    except AdminRouteError as exc:
+        return build_error_response(status_code=exc.status_code, error_code=exc.error_code, message=exc.message)
+
+    from datetime import datetime, timezone
+
+    from app.db.models import QueryLogModel, WorkspaceModel
+
+    workspaces = db.query(WorkspaceModel).all()
+    now = datetime.now(timezone.utc)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    items = []
+    for ws in workspaces:
+        used_this_month = (
+            db.query(QueryLogModel)
+            .filter(
+                QueryLogModel.namespace == ws.slug,
+                QueryLogModel.created_at >= month_start,
+            )
+            .count()
+        )
+        items.append({
+            "id": ws.id,
+            "slug": ws.slug,
+            "display_name": ws.display_name,
+            "monthly_query_cap": ws.monthly_query_cap,
+            "used_this_month": used_this_month,
+            "max_sources": ws.max_sources,
+            "max_chunks": ws.max_chunks,
+        })
+
+    return JSONResponse(status_code=200, content={"workspaces": items})
+
+
+@router.put("/budget/{workspace_id}", summary="Update workspace query cap")
+def update_budget(
+    workspace_id: str,
+    payload: dict[str, Any],
+    user: AuthenticatedUser = Depends(get_authenticated_user),
+    db: Session = Depends(get_db_session),
+) -> JSONResponse:
+    """Update monthly_query_cap for a workspace."""
+    try:
+        _require_admin(user)
+    except AdminRouteError as exc:
+        return build_error_response(status_code=exc.status_code, error_code=exc.error_code, message=exc.message)
+
+    from app.db.models import WorkspaceModel
+
+    ws = db.query(WorkspaceModel).filter(WorkspaceModel.id == workspace_id).first()
+    if not ws:
+        return build_error_response(status_code=404, error_code="NOT_FOUND", message="Workspace not found")
+
+    cap = payload.get("monthly_query_cap")
+    if cap is None or not isinstance(cap, int) or cap < 0:
+        return build_error_response(status_code=422, error_code="VALIDATION_ERROR", message="monthly_query_cap must be a non-negative integer")
+
+    ws.monthly_query_cap = cap
+    db.commit()
+    return JSONResponse(status_code=200, content={"id": workspace_id, "monthly_query_cap": cap})
+
+
 @router.get("/ingest-runs", summary="List recent ingest run records")
 def list_ingest_runs(
     request: Request,

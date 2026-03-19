@@ -7,16 +7,38 @@
 import type { AuthUser, UserRole } from "../types/user";
 
 const SESSION_KEY = "embed_token";
+// A minimal non-sensitive cookie written so Next.js middleware can gate server-side.
+// Contains only { role, exp } — the full JWT stays in sessionStorage only.
+const SESSION_COOKIE = "embed_session";
 
 function readRaw(): string | null {
   if (typeof window === "undefined") return null;
   try { return window.sessionStorage.getItem(SESSION_KEY); } catch { return null; }
 }
 
-/** Store the JWT in sessionStorage. */
+function _writeSessionCookie(jwt: string): void {
+  try {
+    const payload = decodePayload(jwt);
+    if (!payload) return;
+    const meta = btoa(JSON.stringify({ role: payload.role, exp: payload.exp }));
+    const maxAge = Math.max(0, payload.exp - Math.floor(Date.now() / 1000));
+    document.cookie = `${SESSION_COOKIE}=${meta}; path=/; SameSite=Lax; max-age=${maxAge}`;
+  } catch { /* non-critical */ }
+}
+
+function _clearSessionCookie(): void {
+  try {
+    document.cookie = `${SESSION_COOKIE}=; path=/; max-age=0`;
+  } catch { /* non-critical */ }
+}
+
+/** Store the JWT in sessionStorage and write a role cookie for middleware. */
 export function setToken(jwt: string): void {
   if (typeof window === "undefined") return;
-  try { window.sessionStorage.setItem(SESSION_KEY, jwt); } catch {}
+  try {
+    window.sessionStorage.setItem(SESSION_KEY, jwt);
+    _writeSessionCookie(jwt);
+  } catch {}
 }
 
 /** Return the stored JWT, or null if unauthenticated. */
@@ -27,7 +49,10 @@ export function getToken(): string | null {
 /** Clear the stored JWT (logout). */
 export function clearToken(): void {
   if (typeof window === "undefined") return;
-  try { window.sessionStorage.removeItem(SESSION_KEY); } catch {}
+  try {
+    window.sessionStorage.removeItem(SESSION_KEY);
+    _clearSessionCookie();
+  } catch {}
 }
 
 /** True when a valid token exists in sessionStorage. */

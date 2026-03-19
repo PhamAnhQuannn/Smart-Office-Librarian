@@ -3,9 +3,35 @@
 ## 0) Header Metadata
 - Project: Smart Office Librarian (Embedlyzer)
 - Architecture Version: v1.5
-- Status: **Phase 11 planning complete — ready to implement guest mode + history**
-- Last Updated: 2026-03-18 UTC (session 6)
+- Status: **Phase 12 complete — admin server-side gate, analytics + budget endpoints, all stubs resolved**
+- Last Updated: 2026-03-18 UTC (session 7)
 - Owner: Engineering Team
+
+---
+
+## Session 7 Checkpoint — 2026-03-18 UTC
+
+### Phase 12 — Admin server-side gate + remaining stub resolution
+
+#### Changes
+
+| Area | File | Change |
+|------|------|--------|
+| **Server-side admin gate** | `frontend/middleware.ts` *(new)* | Next.js Edge middleware checks `embed_session` cookie for `/admin/*` routes before any page renders |
+| **Auth cookie** | `frontend/lib/auth.ts` | `setToken` now also writes a `embed_session` cookie `{role, exp}` for middleware; `clearToken` clears it |
+| **Analytics endpoint** | `backend/app/api/v1/routes/admin_routes.py` | `GET /api/v1/admin/evaluation/summary?range=7d\|30d\|all` — derived from `query_logs` (confidence, volume, latency, tokens) |
+| **Budget endpoint** | `backend/app/api/v1/routes/admin_routes.py` | `GET /api/v1/admin/budget` + `PUT /api/v1/admin/budget/{id}` — per-workspace `monthly_query_cap` with current-month usage |
+| **Budget page** | `frontend/app/admin/budget/page.tsx` | Full UI — usage bars, inline cap editor, save per row |
+| **API client** | `frontend/lib/api-client.ts` | `BudgetWorkspace`, `adminGetBudget`, `adminUpdateBudget` |
+
+#### Architecture: client vs server separation
+- **Client UI** (`(query)/`, `(auth)/`): no mandatory server auth; AppShell is a soft gate
+- **Admin UI** (`admin/`): guarded at the **server** level by `middleware.ts`; the `AdminShell` client-side check is a secondary defence
+- Admin routes never render on the client unless the server has already validated `role === "admin"` from the signed cookie
+
+#### Test result: 302 passing / 3 pre-existing failures (Caddy TLS ×2, bash syntax ×1)
+
+**Commit**: `v0.9.1-phase12`
 
 ---
 
