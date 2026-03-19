@@ -11,7 +11,7 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
 
 from app.api.v1.dependencies.settings import build_error_response, get_authenticated_user
@@ -105,7 +105,7 @@ def list_workspace_sources(
     )
 
 
-@router.delete("/sources/{source_id}", status_code=204)
+@router.delete("/sources/{source_id}", status_code=204, response_class=Response)
 def delete_workspace_source(
     source_id: str,
     user: Any = Depends(get_authenticated_user),
@@ -138,4 +138,4 @@ def delete_workspace_source(
             "namespace": workspace.slug,
         },
     )
-    return None
+    return Response(status_code=204)
