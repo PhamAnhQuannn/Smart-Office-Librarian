@@ -3,15 +3,16 @@
 		protocols h1 h2
 	}
 	admin off
-	email admin@{$DOMAIN}
+	email admin@{$DOMAIN:localhost}
 }
 
-# Replace {$DOMAIN} with your real domain (e.g. embedlyzer.com) or set the
-# DOMAIN environment variable in docker-compose. Caddy auto-provisions TLS.
-{$DOMAIN:35.175.156.119} {
+# When DOMAIN is not set, falls back to http://35.175.156.119 (HTTP only, bare IP).
+# When DOMAIN is set to a real hostname (e.g. embedlyzer.com), Caddy auto-provisions
+# a free Let's Encrypt TLS certificate and serves HTTPS automatically.
+{$DOMAIN:http://35.175.156.119} {
 	encode zstd gzip
 
-	# Security headers
+	# Security headers (active for HTTPS; harmless for HTTP)
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
 		X-Content-Type-Options "nosniff"
