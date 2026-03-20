@@ -3,15 +3,74 @@
 ## 0) Header Metadata
 - Project: Smart Office Librarian (Embedlyzer)
 - Architecture Version: v1.5
-- Status: **Phase 12 complete — admin server-side gate, analytics + budget endpoints, all stubs resolved**
-- Last Updated: 2026-03-18 UTC (session 7)
+- Status: **Phase 14 complete — spec compliance pass, real data in all widgets, UI polish, provider JWT claim**
+- Last Updated: 2026-03-19 UTC (session 10)
 - Owner: Engineering Team
 
 ---
 
-## Session 7 Checkpoint — 2026-03-18 UTC
+## Session 10 Checkpoint — 2026-03-19 UTC
 
-### Phase 12 — Admin server-side gate + remaining stub resolution
+### Phase 14 — Spec compliance batch 2: UI polish + real data + provider claim
+
+**Commits**: `60b91d0d`, `501c457f`
+
+#### Changes
+
+| Area | File(s) | Change |
+|------|---------|--------|
+| **Sources page rewrite** | `frontend/app/(query)/sources/page.tsx` | Full rewrite: groups `WorkspaceSource[]` by repo (not file-per-row); "Indexed" status chip; "Added [date]" using `created_at`; expand/collapse per repo to show individual file paths; repo-level delete; light theme matching Sync/Usage |
+| **Sync retry button** | `frontend/app/(query)/sync/page.tsx` | Added `RotateCcw` retry button on `status === "failed"` run rows; pre-fills repo URL from `run.repo` and jumps to step 3; `IngestRun` type extended with `repo?` and `branch?` |
+| **Usage: remaining queries** | `frontend/app/(query)/usage/page.tsx` | `StatCard` now accepts optional `subtitle` prop; "Queries this month" card shows `X queries remaining this month`; chunks card now reads `workspace.usage.chunks` (real count, not `0`) |
+| **Settings: sign-out + provider** | `frontend/app/(query)/settings/page.tsx` | "Sign-in method" row added (Google OAuth / Email & password); "Sign out" button in Account section calls `clearToken()` + `router.replace("/login")` |
+| **JWT provider claim** | `backend/app/core/security.py`, `backend/app/api/v1/routes/auth_routes.py` | `issue_jwt_token()` now accepts `provider: str = "password"` claim; login/register routes pass `"password"`, Google OAuth callback passes `"google"` |
+| **AuthUser type** | `frontend/types/user.ts` | Added `provider?: "google" \| "password"` field |
+| **Chunks count** | `backend/app/db/repositories/chunks_repo.py` | Added `count_by_namespace(namespace)` method using `func.count()` |
+| **Workspace /me endpoint** | `backend/app/api/v1/routes/workspace_routes.py` | Returns `usage.chunks` (real count via `ChunksRepository.count_by_namespace`); `usage.queries_this_month` from Redis; new `POST /workspace/ingest` + `GET /workspace/ingest-runs` scoped to authenticated user (fixes critical bug: user pages were calling admin endpoints) |
+| **WorkspaceInfo type** | `frontend/lib/api-client.ts` | `usage.chunks: number`; `usage.queries_this_month: number`; `postIngest` now calls `/api/v1/workspace/ingest` (not admin endpoint) |
+
+#### Architecture notes
+- Workspace-scoped ingest endpoints (`/workspace/ingest`, `/workspace/ingest-runs`) enforce the rule: user pages must never call admin endpoints.
+- The `provider` JWT claim is additive — existing tokens without it default to `undefined` (treated as password in UI) with no breaking change.
+- All chunks, query count, and source count in `/workspace/me` are now live data.
+
+#### All 8 Docker containers healthy on `35.175.156.119` post-deploy.
+
+---
+
+## Session 9 Checkpoint — 2026-03-19 UTC
+
+### Phase 13 — Spec compliance batch 1: workspace endpoints + real counters
+
+**Commit**: `99452849` (Sync/Usage/Settings pages, sidebar 6-item nav), `60b91d0d` (workspace-scoped endpoints)
+
+#### Changes
+
+| Area | File(s) | Change |
+|------|---------|--------|
+| **Sync page** | `frontend/app/(query)/sync/page.tsx` | Calls `WORKSPACE_INGEST_ENDPOINT` + `WORKSPACE_INGEST_RUNS_ENDPOINT`; strategy labels "Fast sync" / "Full refresh" |
+| **Usage page** | `frontend/app/(query)/usage/page.tsx` | Real `queries_this_month` from Redis; ID/slug in collapsible section |
+| **Workspace endpoints** | `backend/app/api/v1/routes/workspace_routes.py` | `POST /workspace/ingest` + `GET /workspace/ingest-runs`; Redis query counter; `source_url` alias for `repo` |
+| **Constants** | `frontend/lib/constants.ts` | `WORKSPACE_INGEST_ENDPOINT`, `WORKSPACE_INGEST_RUNS_ENDPOINT` |
+
+---
+
+## Session 8 Checkpoint — 2026-03-18 UTC
+
+### Google OAuth 2.0 implementation
+
+**Commit**: `v0.9.1-phase13` (Google OAuth)
+
+#### Changes
+- `GET /api/v1/auth/google` — redirect to Google consent screen with PKCE-like state cookie (CSRF protection)
+- `GET /api/v1/auth/google/callback` — exchange code, fetch userinfo, upsert user, issue JWT → deliver via URL fragment to prevent server logging
+- `POST /api/v1/auth/logout` — stateless 204 (frontend clears token)
+- Migration `0004_google_oauth` — `hashed_password` nullable (Google-only accounts)
+- Frontend: "Sign in with Google" button on login page; `/auth/google-callback` route handler reads fragment token and calls `setToken`
+- `hashed_password` nilability guard in login route — Google-only accounts correctly rejected at password endpoint
+- DB migration applied on production server; all 8 containers healthy
+
+---
 
 #### Changes
 

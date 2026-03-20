@@ -4,7 +4,7 @@
 
 **Embedlyzer** is a fully deployed, production-grade Retrieval-Augmented Generation (RAG) platform that unifies fragmented engineering knowledge into a single queryable interface. It enables developers to ask natural-language questions across GitHub repositories and receive AI-generated answers with direct citations to the original source files — including file path and line number.
 
-- **Current Version:** v0.9.1 — live at `http://35.175.156.119`
+- **Current Version:** v1.0 — live at `http://35.175.156.119`
 - **Core Purpose:** Eliminate knowledge silos and accelerate developer onboarding across engineering teams.
 - **Target Users:** Software Engineers, DevOps Engineers, and Technical Writers.
 - **Key Value:** Semantic understanding of documentation with verifiable source attribution, a groundedness guardrail that refuses to hallucinate, and per-workspace usage quotas with a full observability stack.
@@ -65,7 +65,7 @@ The system follows a modular, multi-tenant architecture designed for reliability
 | **Relational DB** | PostgreSQL 16 | Users, workspaces, sources, chunks, query logs, feedback, thresholds |
 | **Cache / Broker** | Redis | Embedding cache, Celery broker, quota counters |
 | **Frontend** | Next.js 14, Tailwind CSS, shadcn/ui | App Router, SSE streaming, server components |
-| **Auth** | JWT (bcrypt) + Google OAuth 2.0 | Passwords nullable for OAuth-only accounts |
+| **Auth** | JWT (bcrypt) + Google OAuth 2.0 | Passwords nullable for OAuth-only accounts; `provider` claim in JWT |
 | **Reverse Proxy** | Caddy 2 | Auto HTTPS via Let's Encrypt when a domain is set |
 | **Observability** | Prometheus + Grafana | Pre-configured dashboards, `/metrics` endpoint |
 | **Infra** | Docker Compose, AWS Lightsail | 8-container stack, 1-command deploy |
@@ -78,13 +78,18 @@ The system follows a modular, multi-tenant architecture designed for reliability
 - `POST /api/v1/auth/login` — JWT authentication
 - `POST /api/v1/auth/register` — self-registration (toggled by `REGISTRATION_ENABLED`)
 - `GET /api/v1/auth/google` + `GET /api/v1/auth/google/callback` — Google OAuth 2.0
+- `POST /api/v1/auth/logout` — stateless session invalidation (204)
 - `POST /api/v1/query` — SSE-streaming RAG query with refusal guardrail
-- `GET /api/v1/history` / `DELETE /api/v1/history/{id}` — query history
-- `POST /api/v1/ingest` — background GitHub ingestion job
-- `GET /api/v1/workspace/me` — workspace info + usage stats
+- `GET /api/v1/history` / `DELETE /api/v1/history/{id}` / `DELETE /api/v1/history` — query history
+- `POST /api/v1/workspace/ingest` — background GitHub ingestion (workspace-scoped, user-facing)
+- `GET /api/v1/workspace/ingest-runs` — recent sync runs for the authenticated user's workspace
+- `GET /api/v1/workspace/me` — workspace info + live usage stats (queries this month from Redis, chunks from DB, sources count)
 - `GET /api/v1/workspace/sources` / `DELETE /api/v1/workspace/sources/{id}` — source management
 - `POST /api/v1/feedback` — thumbs up/down on query results
 - `GET /api/v1/admin/audit-logs` — structured audit log viewer (admin only)
+- `GET /api/v1/admin/ingest-runs` — ingestion run list across all workspaces (admin only)
+- `GET /api/v1/admin/evaluation/summary` — analytics (admin only)
+- `GET /api/v1/admin/budget` + `PUT /api/v1/admin/budget/{id}` — workspace quota management (admin only)
 - `GET /metrics` — Prometheus-format metrics
 - `GET /health` + `GET /ready` — health and readiness probes
 
@@ -100,12 +105,12 @@ The system follows a modular, multi-tenant architecture designed for reliability
 ### Frontend UI
 
 **Main app (all users) — sidebar: Ask / Sources / Sync / History / Usage / Settings**
-- **Ask (`/`)** — streaming answer with `[Source N]` citations, confidence badge, citation panel with file + line, thumbs feedback
-- **Sources (`/sources`)** — list, add, and delete indexed sources for your workspace
-- **Sync (`/sync`)** — connect a GitHub repo, choose incremental or full strategy, monitor recent sync runs
-- **History (`/history`)** — paginated query history
-- **Usage (`/usage`)** — queries used this month, sources count, chunks stored vs limits
-- **Settings (`/settings`)** — account info, answer quality explanation, danger zone
+- **Ask (`/`)** — streaming answer with `[Source N]` citations, confidence badge, citation panel with file + line, thumbs feedback; guest mode supported (queries run, results not saved)
+- **Sources (`/sources`)** — repositories grouped by repo (not file-per-row): repo card shows file count, "Added [date]", "Indexed" status chip, expandable file list, repo-level delete
+- **Sync (`/sync`)** — connect a GitHub repo, choose "Fast sync" (incremental) or "Full refresh" strategy, monitor recent sync runs with Retry button on failed runs
+- **History (`/history`)** — paginated query history; guest state shows sign-in prompt; per-item delete and clear-all
+- **Usage (`/usage`)** — queries used this month + remaining, sources count, chunks stored vs limits (all live data from backend)
+- **Settings (`/settings`)** — account info, sign-in method (Google OAuth / Email & password), Sign out button, answer quality explanation, danger zone
 - **Login / Signup** — email/password + "Sign in with Google" button
 
 **Platform admin dashboard (`/admin/*`) — hidden from regular users, hard role-check**
