@@ -1,13 +1,14 @@
-# 📚 Smart Office Librarian — Enterprise AI Knowledge Agent
+# 📚 Embedlyzer — Enterprise AI Knowledge Agent
 
 ## 📋 Executive Summary
 
-**Smart Office Librarian** is a production-ready Retrieval-Augmented Generation (RAG) system designed to unify fragmented engineering knowledge. It enables developers to ask natural-language questions across GitHub repositories, Confluence, and Google Docs, receiving AI-generated answers with direct source citations to the original files.
+**Embedlyzer** is a fully deployed, production-grade Retrieval-Augmented Generation (RAG) platform that unifies fragmented engineering knowledge into a single queryable interface. It enables developers to ask natural-language questions across GitHub repositories and receive AI-generated answers with direct citations to the original source files — including file path and line number.
 
-- **Core Purpose:** Eliminate "knowledge silos" and accelerate developer onboarding.
-- **Target Users:** Software Engineers, DevOps, and Technical Writers.
-- **Key Value:** Provides semantic understanding of documentation with verifiable source attribution, reducing internal search time by an estimated 40%.
-- **Architecture:** A modular, distributed system using a RAG pipeline, vector search, and a reranker model for high-precision retrieval.
+- **Current Version:** v0.9.1 — live at `http://35.175.156.119`
+- **Core Purpose:** Eliminate knowledge silos and accelerate developer onboarding across engineering teams.
+- **Target Users:** Software Engineers, DevOps Engineers, and Technical Writers.
+- **Key Value:** Semantic understanding of documentation with verifiable source attribution, a groundedness guardrail that refuses to hallucinate, and per-workspace usage quotas with a full observability stack.
+- **Architecture:** Self-serve developer tool — every user owns their workspace. A 3-stage RAG pipeline (retrieval → refusal → generation) with vector search, reranking, and real-time SSE streaming. Two roles: regular users (full product) and platform admins (internal ops dashboard).
 
 ---
 
@@ -15,112 +16,195 @@
 
 In fast-growing engineering teams, knowledge becomes a critical bottleneck.
 
-- **Fragmented Knowledge:** Information is split between code (GitHub), specs (Confluence), and meeting notes (Google Docs). There is no single source of truth.
-- **Keyword Failure:** Traditional search fails if the user doesn't know the exact term (e.g., searching "how to scale" won't find docs titled "Horizontal Pod Autoscaler"). It lacks semantic understanding.
-- **Onboarding Friction:** New hires spend weeks locating tribal knowledge buried in outdated repositories, asking repetitive questions and slowing down senior engineers.
-
-This system provides a semantic intelligence layer to solve these problems directly.
+- **Fragmented Knowledge:** Information is split across GitHub repos, Confluence specs, and meeting notes — no single source of truth.
+- **Keyword Failure:** Traditional search fails when users don't know the exact term. Semantic search finds answers even when vocabulary doesn't match.
+- **Onboarding Friction:** New hires spend weeks locating tribal knowledge buried in outdated repositories, slowing down senior engineers with repetitive questions.
 
 ---
 
 ## 🏗️ System Architecture & Flow
 
-The system follows a modular, distributed architecture designed for reliability and verifiable retrieval.
+The system follows a modular, multi-tenant architecture designed for reliability, verifiable retrieval, and safe generation.
 
 **High-Level Flow:**
-1.  **Ingestion:** GitHub API fetches content → Text is extracted and split into 512-token chunks with 50-token overlap to maintain context.
-2.  **Embedding:** Chunks are transformed into 768-dimension vectors using `text-embedding-3-small`.
-3.  **Storage:** Vectors are stored in Pinecone; metadata (URL, Author, Timestamp) is stored in PostgreSQL.
-4.  **Retrieval:** User queries are embedded → Vector similarity search finds top-k relevant chunks → A Reranker model optimizes for precision.
-5.  **Generation:** gpt-4o-mini synthesizes an answer using *only* the provided context and cites sources using `[Source N]` notation.
+1. **Ingestion:** GitHub connector fetches Markdown, text, and code files → SimHash deduplication filters unchanged content → Text is split into overlapping chunks with line-number mapping preserved.
+2. **Embedding:** Chunks are encoded into dense vectors using `text-embedding-3-small` via the OpenAI API. Embeddings are Redis-cached to reduce latency and cost.
+3. **Storage:** Vectors are stored in Pinecone (one namespace per workspace); chunk metadata (file path, repo, start/end line, SHA) is stored in PostgreSQL.
+4. **Retrieval:** User query is embedded → Pinecone top-k similarity search → cross-encoder reranker re-scores results for precision → primary cosine score is checked against a configurable threshold.
+5. **Refusal:** If the primary score is below threshold, the pipeline refuses to generate and returns the top sources only — preventing hallucinated answers.
+6. **Generation:** `gpt-4o-mini` synthesizes a cited answer using only the retrieved context. Responses stream token-by-token via Server-Sent Events (SSE).
 
 ### Core Components
 
-1.  **Ingestion Pipeline:** Connects to data sources (GitHub, Confluence) via API. It uses background workers (Celery) for scheduled and real-time (webhook-based) indexing.
-2.  **Text Processing Pipeline:** Implements an intelligent chunking strategy (semantic + token-based) and tags each chunk with metadata (file path, repo, timestamp, owner).
-3.  **Embedding Layer:** Converts text chunks into dense vector representations using a chosen model (e.g., OpenAI, Cohere, or a self-hosted SentenceTransformer).
-4.  **Vector Database:** Stores and indexes embeddings for fast similarity search. It supports metadata filtering to enforce permissions and narrow search scope.
-5.  **Retrieval Engine:** Converts the user's question into an embedding, performs a top-k similarity search, and uses a cross-encoder model to rerank results for relevance before passing them to the LLM.
-6.  **Generation Layer (LLM):** Receives the user's question and the top-k retrieved chunks. A carefully engineered prompt instructs the model (e.g., gpt-4o-mini, Claude 3) to generate a structured answer with citations.
-7.  **Security Layer:** Enforces Role-Based Access Control (RBAC) by filtering vector search results based on user permissions synced from the source platform (e.g., GitHub team access).
+| Component | Description |
+|:---|:---|
+| **GitHub Connector** | Fetches files via GitHub API with diff scanning (only re-ingests changed SHAs), `.gitignore`-aware filtering, and per-connector validation |
+| **Chunker** | Semantic + token-based splitting, line-number mapping, SimHash duplicate detection, and text normalization |
+| **Embedder** | OpenAI `text-embedding-3-small` with Redis embedding cache (configurable TTL) |
+| **Vector Store** | Pinecone serverless — one namespace per workspace for strict data isolation |
+| **Reranker** | Cross-encoder model re-scores top-k candidates before the refusal threshold check |
+| **RAG Pipeline** | 3-stage orchestrator: retrieval → refusal → generation with retrieval-only budget mode |
+| **Generation Stage** | Streaming `gpt-4o-mini` completions with citation-enforcing system prompt |
+| **Celery Workers** | Background tasks for ingestion, re-indexing, vector purge, database backup, and worker heartbeat |
+| **Quota Enforcement** | Per-workspace monthly query cap tracked atomically in Redis |
+| **Threshold Tuner** | Admin UI + API to set per-namespace similarity thresholds; persisted in PostgreSQL |
+| **Audit Logger** | Structured event log for all admin and ingestion actions |
+| **Prometheus Metrics** | In-memory registry exposing latency histograms, query counts, refusal counts, TTFT, and active SSE streams |
 
 ---
 
-## 🛠️ Tech Stack & Tradeoffs
+## 🛠️ Tech Stack
 
-| Component  | Choice     | Why this over the alternatives?                                                                                             |
-| :--------- | :--------- | :-------------------------------------------------------------------------------------------------------------------------- |
-| **Backend**  | FastAPI    | High performance with Python's async support; native OpenAPI docs for faster internal tool integration.                     |
-| **Vector DB**| Pinecone   | Managed serverless scaling. Tradeoff: Higher cost than self-hosted Weaviate, but drastically lower DevOps overhead for MVP. |
-| **LLM**      | gpt-4o-mini | Budget-optimized model with strong reasoning and citation accuracy. Tradeoff: Dependency on external API; fallback to local Llama-3 is planned. |
-| **Database** | PostgreSQL | Industry standard for relational metadata and audit logs; allows for `pgvector` migration if we consolidate DBs later.      |
-
-### Detailed Stack
-
-- **Backend:** FastAPI, Celery (background jobs), Redis (caching & message broker).
-- **AI/ML:** OpenAI/Cohere APIs, SentenceTransformers, LangChain.
-- **Frontend:** Next.js, Tailwind CSS, shadcn/ui (for rapid, modern UI development).
-- **Infrastructure:** Docker, Kubernetes (optional), AWS (ECS/Lambda/S3), Terraform.
-
----
-
-## 🚀 MVP Scope vs. Roadmap
-
-To ensure high reliability and engineering trust, the project is divided into prioritized phases:
-
-### ✅ MVP (v1 - Current Focus)
-
-- **GitHub Connector:** Ingests Markdown and `.txt` files from specified repositories.
-- **Semantic Search:** Vector-based retrieval with basic metadata filtering.
-- **Cited Answers:** UI displays the specific file and line number used for the answer.
-- **Basic RBAC:** Admin (ingestion control) vs. User (query only).
-
-### 🚧 Future (v2+)
-
-- **Multi-Source Integration:** Add connectors for Confluence, Google Docs, and Slack to become the single source of truth.
-- **AST Code-Awareness:** Parse Java/Python code structures using Tree-sitter to answer questions about logic and implementation details (e.g., "Where is payment validation implemented?").
-- **Conversational Memory:** Enable context-aware, multi-turn dialogues for follow-up questions.
-- **Analytics Dashboard:** Provide insights on most-asked questions, knowledge gaps, and search time saved.
-- **Hallucination Guardrails:** Implement a "Confidence Score" threshold to reject low-quality or non-grounded answers.
+| Layer | Technology | Notes |
+|:---|:---|:---|
+| **Backend** | FastAPI (Python 3.12) | Async, typed, OpenAPI auto-docs |
+| **Task Queue** | Celery + Redis | Ingestion, reindex, purge, backup, heartbeat tasks |
+| **Vector DB** | Pinecone (serverless) | Per-workspace namespaces for data isolation |
+| **LLM** | OpenAI `gpt-4o-mini` | Budget-optimized; strong citation accuracy |
+| **Embeddings** | OpenAI `text-embedding-3-small` | Redis-cached to minimize API calls |
+| **Relational DB** | PostgreSQL 16 | Users, workspaces, sources, chunks, query logs, feedback, thresholds |
+| **Cache / Broker** | Redis | Embedding cache, Celery broker, quota counters |
+| **Frontend** | Next.js 14, Tailwind CSS, shadcn/ui | App Router, SSE streaming, server components |
+| **Auth** | JWT (bcrypt) + Google OAuth 2.0 | Passwords nullable for OAuth-only accounts |
+| **Reverse Proxy** | Caddy 2 | Auto HTTPS via Let's Encrypt when a domain is set |
+| **Observability** | Prometheus + Grafana | Pre-configured dashboards, `/metrics` endpoint |
+| **Infra** | Docker Compose, AWS Lightsail | 8-container stack, 1-command deploy |
 
 ---
 
-## 🧪 Target Success Criteria
+## ✅ What's Built & Deployed (v0.9.1)
 
-| Metric                | Target                                                                      | Measurement Method                                       |
-| :-------------------- | :-------------------------------------------------------------------------- | :------------------------------------------------------- |
-| **Retrieval Precision** | >80%                                                                        | "Golden Questions" must return the correct source in Top-5 |
-| **Latency (p95)**       | < 2 seconds                                                                 | End-to-end query response time from user perspective     |
-| **Groundedness**        | 100%                                                                        | AI must refuse to answer if context is insufficient      |
-- **User Satisfaction:** >4.0/5.0 score from user feedback widgets.
-- **Business Impact:** Reduce onboarding time by 30% and internal search time by 40%.
+### Backend API
+- `POST /api/v1/auth/login` — JWT authentication
+- `POST /api/v1/auth/register` — self-registration (toggled by `REGISTRATION_ENABLED`)
+- `GET /api/v1/auth/google` + `GET /api/v1/auth/google/callback` — Google OAuth 2.0
+- `POST /api/v1/query` — SSE-streaming RAG query with refusal guardrail
+- `GET /api/v1/history` / `DELETE /api/v1/history/{id}` — query history
+- `POST /api/v1/ingest` — background GitHub ingestion job
+- `GET /api/v1/workspace/me` — workspace info + usage stats
+- `GET /api/v1/workspace/sources` / `DELETE /api/v1/workspace/sources/{id}` — source management
+- `POST /api/v1/feedback` — thumbs up/down on query results
+- `GET /api/v1/admin/audit-logs` — structured audit log viewer (admin only)
+- `GET /metrics` — Prometheus-format metrics
+- `GET /health` + `GET /ready` — health and readiness probes
+
+### Data Model
+- **Users** — email/password or Google OAuth, role (`admin` / `user`), active flag
+- **Workspaces** — one per user, Pinecone namespace = workspace slug, configurable quotas (`max_chunks`, `max_sources`, `monthly_query_cap`)
+- **Sources** — GitHub repo + file metadata, last-indexed SHA for diff-based re-ingestion
+- **Chunks** — text fragments with vector ID, SimHash, start/end line, namespace
+- **QueryLogs** — full observability record per query (latency, TTFT, tokens, score, sources)
+- **Feedbacks** — vote (`up` / `down`) + optional comment linked to query log
+- **ThresholdConfigs** — per-namespace similarity threshold, persisted and versioned
+
+### Frontend UI
+
+**Main app (all users) — sidebar: Ask / Sources / Sync / History / Usage / Settings**
+- **Ask (`/`)** — streaming answer with `[Source N]` citations, confidence badge, citation panel with file + line, thumbs feedback
+- **Sources (`/sources`)** — list, add, and delete indexed sources for your workspace
+- **Sync (`/sync`)** — connect a GitHub repo, choose incremental or full strategy, monitor recent sync runs
+- **History (`/history`)** — paginated query history
+- **Usage (`/usage`)** — queries used this month, sources count, chunks stored vs limits
+- **Settings (`/settings`)** — account info, answer quality explanation, danger zone
+- **Login / Signup** — email/password + "Sign in with Google" button
+
+**Platform admin dashboard (`/admin/*`) — hidden from regular users, hard role-check**
+- **Ingestion** — trigger ingestion on any workspace (platform operator only)
+- **Sources** — view and delete sources across all workspaces
+- **Workspaces** — workspace quota management
+- **Thresholds** — per-namespace similarity threshold tuning
+- **Analytics** — query volume, refusal rate, feedback trends
+- **Audit Logs** — structured admin event log
+- **Budget** — token usage and cost tracking
+
+### Infrastructure (8-container Docker Compose stack)
+| Container | Role |
+|:---|:---|
+| `api` | FastAPI app (health-checked) |
+| `worker` | Celery worker |
+| `frontend` | Next.js app (health-checked) |
+| `postgres` | PostgreSQL 16 (health-checked) |
+| `redis` | Redis 7 (health-checked) |
+| `caddy` | Reverse proxy (HTTP now; auto-HTTPS when domain set) |
+| `prometheus` | Metrics scraping |
+| `grafana` | Dashboards |
+
+---
+
+## 🔒 Security
+
+- JWT tokens signed with a configurable secret; passwords hashed with bcrypt
+- Google OAuth uses CSRF state cookie to prevent open-redirect attacks
+- **2-role model**: every user is the full owner of their own workspace; platform admin (`/admin`) is for internal ops only
+- RBAC enforced at every admin endpoint — role checked server-side, never client-side
+- Admin UI hard-blocks non-admins client-side too (`role !== "admin"` → redirect to `/`)
+- `hashed_password` is nullable — Google-only accounts cannot authenticate via password endpoint
+- Pinecone namespace isolation ensures each workspace's vectors are logically separated
+- Caddy serves `Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options`, and `Referrer-Policy` headers
+- `REGISTRATION_ENABLED` flag allows admin-invite-only mode
+- All admin and ingestion events are written to a structured audit log
+
+---
+
+## 🧪 Success Criteria
+
+| Metric | Target | Status |
+|:---|:---|:---|
+| Retrieval Precision (Top-5) | > 80% | Measured via golden questions dataset |
+| Query Latency (p95) | < 2 s | Tracked via `librarian_stage_latency_ms` histogram |
+| Groundedness | 100% | Refusal guardrail refuses sub-threshold answers |
+| User Satisfaction | > 4.0 / 5.0 | Thumbs feedback collected per query |
 
 ---
 
 ## 📂 Repository Structure
 
 ```
-/backend          # FastAPI app, Ingestion workers, API logic
-/frontend         # Next.js UI, Markdown rendering, Source panels
-/infra            # Docker Compose, Kubernetes manifests, Terraform
-/docs             # /architecture.md, /evaluation.md, /security.md
+backend/          FastAPI app, Celery workers, RAG pipeline, connectors
+  app/
+    api/          REST routes (auth, query, ingest, workspace, admin, feedback)
+    connectors/   GitHub connector (client, diff scanner, extractor, ignore rules)
+    rag/          Pipeline orchestrator, retrieval, chunking, generation, refusal
+    workers/      Celery tasks (ingest, reindex, purge, backup, heartbeat)
+    db/           SQLAlchemy models, Alembic migrations, repositories
+    core/         JWT security, metrics registry, audit logger
+frontend/         Next.js 14 app
+  app/(query)/    Main product UI (Ask, Sources, Sync, History, Usage, Settings)
+  app/(auth)/     Login, Signup, Google callback
+  app/admin/      Platform admin dashboard (Analytics, Thresholds, Budget, Audit)
+  app/api/        Next.js route handlers (SSE proxy, auth proxy)
+infra/
+  docker/         Docker Compose (8-service production stack)
+  caddy/          Reverse proxy config (auto-TLS ready)
+  prometheus/     Scrape config
+  grafana/        Dashboard provisioning
+docs/             Architecture, API reference, runbooks, security policy
+evaluation/       Golden questions dataset, PQS evaluation scripts
 ```
 
 ---
 
 ## ⚡ Quick Start (Local Dev)
 
-1.  **Clone & Env:** Clone the repository. Copy `.env.example` to `.env` and add your `OPENAI_API_KEY` and `PINECONE_API_KEY`.
-2.  **Containers:** Run `docker-compose up --build`. This will start the backend, frontend, and database services.
-3.  **Ingest Data:** Send a POST request to `/api/v1/ingest` with a repository URL:
-    `POST /api/v1/ingest { "url": "github.com/org/repo" }`
-4.  **Query:** Send a POST request to `/api/v1/query` with your question:
-    `POST /api/v1/query { "prompt": "How do I setup the DB?" }`
+```bash
+# 1. Clone and configure
+cp backend/.env.example backend/.env
+# Fill in OPENAI_API_KEY, PINECONE_API_KEY, JWT_SECRET
+
+# 2. Start all services
+docker compose -f infra/docker/docker-compose.yml up --build
+
+# 3. Run migrations and seed admin
+docker compose -f infra/docker/docker-compose.yml exec api \
+  sh -c "PYTHONPATH=/app alembic -c /app/alembic.ini upgrade head"
+docker compose -f infra/docker/docker-compose.yml exec api \
+  sh -c "PYTHONPATH=/app python3.12 /app/scripts/seed_db.py --admin-email admin@example.com --admin-password YourPassword123"
+
+# 4. Open http://localhost
+```
 
 ---
 
-## 🔥 How to Position This on a Resume
+## 🔥 Resume Positioning
 
-Instead of: *"Built an AI chatbot using OpenAI API."*
-
-Write: *"Designed and implemented a scalable Retrieval-Augmented Generation (RAG) system for enterprise documentation intelligence, integrating GitHub and Google Docs ingestion pipelines, vector similarity search, and source-attributed LLM responses with role-based access control."*
+> "Designed and deployed a production multi-tenant RAG platform with GitHub ingestion, vector similarity search with cross-encoder reranking, a groundedness refusal guardrail, real-time SSE streaming, Google OAuth, per-workspace isolation, and a full observability stack (Prometheus + Grafana) — all containerised and live on AWS."

@@ -6,15 +6,23 @@ import { IngestForm } from "../../../components/admin/IngestForm";
 import { IngestRunMonitor } from "../../../components/admin/IngestRunMonitor";
 import { useAuth } from "../../../hooks/useAuth";
 
-export default function IngestionPage(): JSX.Element {
+export default function AdminIngestionPage(): JSX.Element {
   const { token } = useAuth();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   return (
     <div className="space-y-6">
+      <div>
+        <h1 className="text-xl font-bold text-slate-900">Platform Ingestion</h1>
+        <p className="text-sm text-slate-500 mt-1">
+          Trigger ingestion jobs on behalf of any workspace. For your own workspace, use{" "}
+          <a href="/sync" className="text-teal-600 hover:underline font-medium">Sync</a> in the main app.
+        </p>
+      </div>
+
       <Card>
         <CardHeader>
-          <h2 className="text-lg font-semibold">Ingest Source</h2>
+          <h2 className="text-base font-semibold">Ingest to workspace</h2>
         </CardHeader>
         <CardBody>
           <IngestForm
@@ -26,7 +34,7 @@ export default function IngestionPage(): JSX.Element {
 
       <Card>
         <CardHeader>
-          <h2 className="text-lg font-semibold">Recent Ingest Runs</h2>
+          <h2 className="text-base font-semibold">All recent ingest runs</h2>
         </CardHeader>
         <CardBody>
           <IngestRunMonitor authToken={token ?? ""} refreshTrigger={refreshTrigger} />

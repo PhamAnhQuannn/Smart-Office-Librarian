@@ -7,16 +7,22 @@ import {
   Database,
   History,
   LogOut,
+  RefreshCw,
   Search,
+  Settings,
   X,
+  Zap,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { clearToken, currentUser } from "../../lib/auth";
 
 const USER_NAV = [
-  { id: "query",   label: "Query",      href: "/",        icon: Search   },
-  { id: "sources", label: "My Sources", href: "/sources", icon: Database },
-  { id: "history", label: "History",    href: "/history", icon: History  },
+  { id: "query",   label: "Ask",        href: "/",        icon: Search    },
+  { id: "sources", label: "Sources",    href: "/sources", icon: Database  },
+  { id: "sync",    label: "Sync",       href: "/sync",    icon: RefreshCw },
+  { id: "history", label: "History",    href: "/history", icon: History   },
+  { id: "usage",   label: "Usage",      href: "/usage",   icon: Zap       },
+  { id: "settings","label": "Settings", href: "/settings",icon: Settings  },
 ];
 
 export function Sidebar({ onClose }: { onClose?: () => void }): JSX.Element {
