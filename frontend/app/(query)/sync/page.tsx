@@ -11,7 +11,7 @@ import { Badge } from "../../../components/ui/badge";
 import type { BadgeProps } from "../../../components/ui/badge";
 import { formatDate } from "../../../lib/utils";
 import { useEffect, useCallback } from "react";
-import { INGEST_ENDPOINT, ADMIN_INGEST_RUNS_ENDPOINT } from "../../../lib/constants";
+import { WORKSPACE_INGEST_ENDPOINT, WORKSPACE_INGEST_RUNS_ENDPOINT } from "../../../lib/constants";
 
 type Strategy = "incremental" | "full";
 
@@ -76,7 +76,7 @@ export default function SyncPage(): JSX.Element {
     if (!t) return;
     setRunsLoading(true);
     try {
-      const res = await fetch(buildApiUrl(ADMIN_INGEST_RUNS_ENDPOINT), {
+      const res = await fetch(buildApiUrl(WORKSPACE_INGEST_RUNS_ENDPOINT), {
         headers: { Authorization: `Bearer ${t}` },
       });
       if (res.ok) {
@@ -96,7 +96,7 @@ export default function SyncPage(): JSX.Element {
     if (!t) { router.replace("/login"); return; }
     setLoading(true);
     try {
-      const res = await fetch(buildApiUrl(INGEST_ENDPOINT), {
+      const res = await fetch(buildApiUrl(WORKSPACE_INGEST_ENDPOINT), {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
         body: JSON.stringify({ source_url: repoUrl.trim(), strategy, connector }),
@@ -212,9 +212,11 @@ export default function SyncPage(): JSX.Element {
                     strategy === s ? "border-teal-500 bg-teal-50/50" : "border-slate-100 hover:border-slate-300"
                   }`}
                 >
-                  <p className="text-sm font-bold capitalize text-slate-800">{s}</p>
+                  <p className="text-sm font-bold text-slate-800">
+                    {s === "incremental" ? "Fast sync" : "Full refresh"}
+                  </p>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    {s === "incremental" ? "Only re-index changed files (faster)" : "Re-index all files from scratch"}
+                    {s === "incremental" ? "Only re-index changed files — faster and cheaper" : "Re-index all files from scratch"}
                   </p>
                 </button>
               ))}

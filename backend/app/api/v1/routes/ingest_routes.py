@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends
@@ -56,7 +57,7 @@ def ingest_endpoint(
             message=f"Source limit reached ({workspace.max_sources} sources per workspace)",
         )
 
-    repo = str(payload.get("repo") or "").strip()
+    repo = str(payload.get("repo") or payload.get("source_url") or "").strip()
     branch = str(payload.get("branch") or "main").strip() or "main"
     if not repo:
         return build_error_response(
@@ -74,6 +75,7 @@ def ingest_endpoint(
         "workspace_id": target_workspace_id,
         "namespace": workspace.slug,
         "status": "queued",
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
     ingest_jobs[job_id] = record
     return JSONResponse(status_code=202, content=record)

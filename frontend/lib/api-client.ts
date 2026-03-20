@@ -124,7 +124,7 @@ export interface WorkspaceInfo {
 	slug: string;
 	display_name: string;
 	limits: { max_sources: number; max_chunks: number; monthly_query_cap: number };
-	usage: { sources: number };
+	usage: { sources: number; queries_this_month: number };
 }
 
 export interface WorkspaceSource {
@@ -186,7 +186,7 @@ export async function postIngest(
 	branch: string,
 	authToken: string,
 ): Promise<{ job_id: string; status: string }> {
-	const response = await fetch(buildApiUrl("/api/v1/ingest"), {
+	const response = await fetch(buildApiUrl("/api/v1/workspace/ingest"), {
 		method: "POST",
 		headers: createHeaders(authToken),
 		body: JSON.stringify({ repo, branch }),

@@ -18,6 +18,10 @@ export const ADMIN_INGEST_RUNS_ENDPOINT = "/api/v1/admin/ingest-runs";
 export const ADMIN_WORKSPACES_ENDPOINT = "/api/v1/admin/workspaces";
 export const INGEST_ENDPOINT = "/api/v1/ingest";
 
+/** Workspace-scoped endpoints (use these in normal user pages, never admin endpoints) */
+export const WORKSPACE_INGEST_ENDPOINT = "/api/v1/workspace/ingest";
+export const WORKSPACE_INGEST_RUNS_ENDPOINT = "/api/v1/workspace/ingest-runs";
+
 /** Rate limiting (client-side guard, mirrors server-side rule). */
 export const MAX_QUERIES_PER_HOUR = 50;
 export const RATE_WINDOW_MS = 60 * 60 * 1_000;

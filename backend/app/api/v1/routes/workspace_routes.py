@@ -8,13 +8,15 @@ DELETE /workspace/sources/{source_id} — delete a source (DB only; vectors expi
 from __future__ import annotations
 
 import logging
+import uuid
+from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
 
-from app.api.v1.dependencies.settings import build_error_response, get_authenticated_user
+from app.api.v1.dependencies.settings import build_error_response, get_authenticated_user, get_ingest_jobs
 from app.db.repositories.sources_repo import SourcesRepository
 from app.db.repositories.workspaces_repo import WorkspacesRepository
 from app.db.session import get_db_session
@@ -44,6 +46,7 @@ def _require_workspace(user: Any, db: Session):
 
 @router.get("/me")
 def get_workspace_me(
+    request: Request,
     user: Any = Depends(get_authenticated_user),
     db: Session = Depends(get_db_session),
 ) -> JSONResponse:
@@ -53,6 +56,20 @@ def get_workspace_me(
         return err
 
     source_count = SourcesRepository(db).count_by_workspace(user.workspace_id)
+
+    # Read monthly query count from Redis (best-effort; falls back to 0)
+    queries_this_month = 0
+    try:
+        cache = getattr(request.app.state, "cache", None)
+        if cache is not None and user.workspace_id:
+            month = datetime.now(timezone.utc).strftime("%Y-%m")
+            key = f"workspace:{user.workspace_id}:queries:{month}"
+            redis_count = cache._client.get(key)
+            if redis_count is not None:
+                queries_this_month = int(redis_count)
+    except Exception:  # noqa: BLE001
+        pass  # Redis unavailable — return 0
+
     return JSONResponse(
         status_code=200,
         content={
@@ -66,6 +83,7 @@ def get_workspace_me(
             },
             "usage": {
                 "sources": source_count,
+                "queries_this_month": queries_this_month,
             },
         },
     )
@@ -139,3 +157,79 @@ def delete_workspace_source(
         },
     )
     return Response(status_code=204)
+
+
+@router.post("/ingest")
+def workspace_ingest(
+    payload: dict[str, Any],
+    request: Request,
+    user: Any = Depends(get_authenticated_user),
+    ingest_jobs: dict[str, dict[str, Any]] = Depends(get_ingest_jobs),
+    db: Session = Depends(get_db_session),
+) -> JSONResponse:
+    """Queue an ingestion job scoped to the authenticated user's workspace.
+
+    Accepts 'repo' or 'source_url' interchangeably for the repository identifier.
+    """
+    workspace, err = _require_workspace(user, db)
+    if err is not None:
+        return err
+
+    source_count = SourcesRepository(db).count_by_workspace(user.workspace_id)
+    if source_count >= workspace.max_sources:
+        return build_error_response(
+            status_code=429,
+            error_code="QUOTA_EXCEEDED",
+            message=f"Source limit reached ({workspace.max_sources} sources per workspace)",
+        )
+
+    repo = str(payload.get("repo") or payload.get("source_url") or "").strip()
+    branch = str(payload.get("branch") or "main").strip() or "main"
+    if not repo:
+        return build_error_response(
+            status_code=400,
+            error_code="VALIDATION_ERROR",
+            message="Repository identifier is required",
+        )
+
+    job_id = f"ingest-{uuid.uuid4()}"
+    record: dict[str, Any] = {
+        "job_id": job_id,
+        "repo": repo,
+        "branch": branch,
+        "requested_by": user.user_id,
+        "workspace_id": user.workspace_id,
+        "namespace": workspace.slug,
+        "status": "queued",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    ingest_jobs[job_id] = record
+    return JSONResponse(status_code=202, content=record)
+
+
+@router.get("/ingest-runs")
+def list_workspace_ingest_runs(
+    request: Request,
+    limit: int = 20,
+    user: Any = Depends(get_authenticated_user),
+) -> JSONResponse:
+    """Return recent ingest runs scoped to the authenticated user's workspace, newest first."""
+    if not user.workspace_id:
+        return build_error_response(
+            status_code=403,
+            error_code="FORBIDDEN",
+            message="No workspace associated with this account",
+        )
+
+    safe_limit = max(1, min(limit, 100))
+    ingest_jobs: dict[str, Any] = getattr(request.app.state, "ingest_jobs", {})
+
+    # Filter to this workspace only; reverse for newest-first
+    workspace_runs = [
+        {"id": k, **v}
+        for k, v in ingest_jobs.items()
+        if v.get("workspace_id") == user.workspace_id
+    ]
+    workspace_runs = list(reversed(workspace_runs))[:safe_limit]
+
+    return JSONResponse(status_code=200, content={"items": workspace_runs})
