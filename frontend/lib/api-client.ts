@@ -149,6 +149,24 @@ export async function getWorkspaceMe(authToken: string): Promise<WorkspaceInfo> 
 	);
 }
 
+export async function patchWorkspaceMe(
+	authToken: string,
+	data: { display_name: string },
+): Promise<{ display_name: string }> {
+	const response = await fetch(buildApiUrl("/api/v1/workspace/me"), {
+		method: "PATCH",
+		headers: createHeaders(authToken),
+		body: JSON.stringify(data),
+	});
+	if (response.ok) return response.json() as Promise<{ display_name: string }>;
+	const errorPayload = await parseApiError(response);
+	throw new ApiClientError(
+		errorPayload?.message ?? "Failed to update workspace.",
+		response.status,
+		errorPayload?.error_code,
+	);
+}
+
 export async function getWorkspaceSources(
 	authToken: string,
 	limit = 50,

@@ -1,6 +1,7 @@
 """Workspace management routes.
 
 GET    /workspace/me                  — workspace info + usage stats
+PATCH  /workspace/me                  — update display name
 GET    /workspace/sources             — list indexed sources
 DELETE /workspace/sources/{source_id} — delete a source (DB only; vectors expired async)
 """
@@ -90,6 +91,39 @@ def get_workspace_me(
             },
         },
     )
+
+
+@router.patch("/me")
+def patch_workspace_me(
+    payload: dict[str, Any],
+    user: Any = Depends(get_authenticated_user),
+    db: Session = Depends(get_db_session),
+) -> JSONResponse:
+    """Update mutable workspace fields (currently: display_name)."""
+    workspace, err = _require_workspace(user, db)
+    if err is not None:
+        return err
+
+    display_name = str(payload.get("display_name") or "").strip()
+    if not display_name:
+        return build_error_response(
+            status_code=400,
+            error_code="VALIDATION_ERROR",
+            message="display_name must be a non-empty string",
+        )
+    if len(display_name) > 80:
+        return build_error_response(
+            status_code=400,
+            error_code="VALIDATION_ERROR",
+            message="display_name must be 80 characters or fewer",
+        )
+
+    WorkspacesRepository(db).update_display_name(workspace, display_name)
+    logger.info(
+        "workspace.display_name.updated",
+        extra={"workspace_id": user.workspace_id, "display_name": display_name},
+    )
+    return JSONResponse(status_code=200, content={"display_name": display_name})
 
 
 @router.get("/sources")

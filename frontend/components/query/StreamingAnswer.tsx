@@ -53,13 +53,22 @@ function SkeletonLoader(): JSX.Element {
   );
 }
 
-function CitationsSection({ sources }: { sources: SourceCitation[] }): JSX.Element {
-  const [open, setOpen] = useState(true);
+function CitationsSection({
+  sources,
+  open,
+  onToggle,
+  highlighted,
+}: {
+  sources: SourceCitation[];
+  open: boolean;
+  onToggle: () => void;
+  highlighted: Set<number>;
+}): JSX.Element {
   return (
     <div className="pt-6 border-t border-slate-200">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={onToggle}
         className="flex items-center justify-between w-full mb-5 group"
       >
         <p className="text-xs font-black text-slate-400 uppercase tracking-widest">
@@ -70,8 +79,35 @@ function CitationsSection({ sources }: { sources: SourceCitation[] }): JSX.Eleme
           className={`text-slate-400 transition-transform group-hover:text-slate-600 ${open ? "" : "-rotate-90"}`}
         />
       </button>
-      {open && <CitationPanel sources={sources} />}
+      {open && <CitationPanel sources={sources} highlighted={highlighted} />}
     </div>
+  );
+}
+
+/** Renders answer text with [N] citation refs as clickable teal badges. */
+function AnswerText({ text, onCite }: { text: string; onCite: (n: number) => void }): JSX.Element {
+  const parts = text.split(/(\[\d+\])/);
+  return (
+    <>
+      {parts.map((part, i) => {
+        const m = part.match(/^\[(\d+)\]$/);
+        if (m) {
+          const n = parseInt(m[1], 10);
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onCite(n)}
+              className="inline-flex items-center justify-center w-5 h-5 text-xs font-black text-teal-700 bg-teal-50 border border-teal-200 rounded-full hover:bg-teal-100 transition-colors mx-0.5 align-baseline"
+              title={`Jump to source ${n}`}
+            >
+              {n}
+            </button>
+          );
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </>
   );
 }
 
@@ -84,6 +120,18 @@ export function StreamingAnswer({
   isStreaming,
   errorMessage,
 }: StreamingAnswerProps): JSX.Element {
+  const [citationsOpen, setCitationsOpen] = useState(true);
+  const [highlighted, setHighlighted] = useState<Set<number>>(new Set());
+
+  const handleCitationClick = (n: number) => {
+    setCitationsOpen(true);
+    setHighlighted(new Set([n]));
+    requestAnimationFrame(() => {
+      document.getElementById(`citation-${n}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    setTimeout(() => setHighlighted(new Set()), 1500);
+  };
+
   if (errorMessage) {
     return (
       <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-800">
@@ -122,14 +170,21 @@ export function StreamingAnswer({
         {/* Answer text */}
         {(mode === "answer" || (!mode && answer)) && (
           <div className="text-base leading-relaxed text-slate-800 font-normal whitespace-pre-wrap">
-            {answer}
+            <AnswerText text={answer} onCite={handleCitationClick} />
             {isStreaming && (
               <span className="ml-1 inline-block h-4 w-0.5 bg-teal-500 animate-pulse align-middle" />
             )}
           </div>
         )}
 
-        {sources.length > 0 && <CitationsSection sources={sources} />}
+        {sources.length > 0 && (
+          <CitationsSection
+            sources={sources}
+            open={citationsOpen}
+            onToggle={() => setCitationsOpen((o) => !o)}
+            highlighted={highlighted}
+          />
+        )}
       </div>
     </div>
   );

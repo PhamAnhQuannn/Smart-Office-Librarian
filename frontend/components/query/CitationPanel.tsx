@@ -4,22 +4,34 @@ import { sourceFileName } from "../../types/source";
 
 interface CitationPanelProps {
   sources: SourceCitation[];
+  highlighted?: Set<number>; // 1-indexed — matches [N] refs in answer text
 }
 
-export function CitationPanel({ sources }: CitationPanelProps): JSX.Element {
+export function CitationPanel({ sources, highlighted }: CitationPanelProps): JSX.Element {
   if (!sources.length) return <></>;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {sources.map((source) => (
+      {sources.map((source, index) => {
+        const num = index + 1;
+        const isHighlighted = highlighted?.has(num) ?? false;
+        return (
         <div
+          id={`citation-${num}`}
           key={`${source.file_path}:${source.start_line}-${source.end_line}`}
-          className="bg-white border border-slate-100 p-5 rounded-xl shadow-sm hover:shadow-md transition-all border-l-4 border-l-teal-500 group"
+          className={`bg-white border p-5 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border-l-4 border-l-teal-500 group ${
+            isHighlighted ? "ring-2 ring-teal-400 border-slate-200" : "border-slate-100"
+          }`}
         >
           <div className="flex items-start justify-between gap-2 mb-2">
-            <p className="font-bold text-slate-900 text-sm truncate">
-              {sourceFileName(source.file_path)}
-            </p>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="shrink-0 w-5 h-5 rounded-full bg-teal-500 text-white text-xs font-black flex items-center justify-center">
+                {num}
+              </span>
+              <p className="font-bold text-slate-900 text-sm truncate">
+                {sourceFileName(source.file_path)}
+              </p>
+            </div>
             <span className="text-xs font-bold text-slate-400 shrink-0">
               L{source.start_line}–{source.end_line}
             </span>
@@ -48,7 +60,8 @@ export function CitationPanel({ sources }: CitationPanelProps): JSX.Element {
             </button>
           )}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

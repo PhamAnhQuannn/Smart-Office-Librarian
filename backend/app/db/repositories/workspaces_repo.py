@@ -42,3 +42,8 @@ class WorkspacesRepository(BaseRepository[WorkspaceModel]):
 
     def get_by_id(self, workspace_id: str) -> WorkspaceModel | None:
         return self._session.get(WorkspaceModel, workspace_id)
+
+    def update_display_name(self, workspace: WorkspaceModel, display_name: str) -> WorkspaceModel:
+        workspace.display_name = display_name
+        self._session.flush()
+        return workspace

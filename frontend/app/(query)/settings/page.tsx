@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, AlertTriangle, LogOut } from "lucide-react";
-import { getWorkspaceMe, ApiClientError, type WorkspaceInfo } from "../../../lib/api-client";
+import { Trash2, AlertTriangle, LogOut, Pencil, Check, X } from "lucide-react";
+import { getWorkspaceMe, patchWorkspaceMe, ApiClientError, type WorkspaceInfo } from "../../../lib/api-client";
 import { getToken, clearToken, currentUser } from "../../../lib/auth";
 import { useToast } from "../../../context/toast-context";
 
@@ -14,18 +14,40 @@ export default function SettingsPage(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  // Workspace rename state
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState("");
+  const [nameSaving, setNameSaving] = useState(false);
+
   const user = currentUser();
 
   useEffect(() => {
     const token = getToken();
     if (!token) { router.replace("/login"); return; }
     getWorkspaceMe(token)
-      .then(setWorkspace)
+      .then((ws) => { setWorkspace(ws); setNameInput(ws.display_name); })
       .catch((err: unknown) => {
         if (err instanceof ApiClientError && err.status === 401) router.replace("/login");
       })
       .finally(() => setLoading(false));
   }, [router]);
+
+  const handleSaveName = async () => {
+    const token = getToken();
+    if (!token || !nameInput.trim()) return;
+    setNameSaving(true);
+    try {
+      const result = await patchWorkspaceMe(token, { display_name: nameInput.trim() });
+      setWorkspace((prev) => prev ? { ...prev, display_name: result.display_name } : prev);
+      setEditingName(false);
+      addToast("Saved", "Workspace name updated.", "success");
+    } catch (err: unknown) {
+      const msg = err instanceof ApiClientError ? err.message : "Failed to save.";
+      addToast("Error", msg, "error");
+    } finally {
+      setNameSaving(false);
+    }
+  };
 
   if (loading) return (
     <div className="flex items-center justify-center h-48 text-sm text-slate-400">Loading&hellip;</div>
@@ -59,7 +81,37 @@ export default function SettingsPage(): JSX.Element {
           {workspace && (
             <div className="flex justify-between items-center py-1.5">
               <span className="text-slate-500">Workspace</span>
-              <span className="font-medium text-slate-800">{workspace.display_name}</span>
+              {editingName ? (
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="text"
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleSaveName(); if (e.key === "Escape") setEditingName(false); }}
+                    className="border border-teal-400 rounded-lg px-2 py-0.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-300 w-44"
+                    maxLength={80}
+                    disabled={nameSaving}
+                    // eslint-disable-next-line jsx-a11y/no-autofocus
+                    autoFocus
+                  />
+                  <button type="button" onClick={handleSaveName} disabled={nameSaving}
+                    className="p-1 text-teal-600 hover:text-teal-700 disabled:opacity-50">
+                    <Check size={14} />
+                  </button>
+                  <button type="button" onClick={() => { setEditingName(false); setNameInput(workspace.display_name); }}
+                    className="p-1 text-slate-400 hover:text-slate-600">
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-slate-800">{workspace.display_name}</span>
+                  <button type="button" onClick={() => setEditingName(true)}
+                    className="p-1 text-slate-300 hover:text-slate-500 transition-colors" title="Edit workspace name">
+                    <Pencil size={12} />
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
