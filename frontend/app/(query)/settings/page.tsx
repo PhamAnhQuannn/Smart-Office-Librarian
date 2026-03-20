@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, AlertTriangle } from "lucide-react";
+import { Trash2, AlertTriangle, LogOut } from "lucide-react";
 import { getWorkspaceMe, ApiClientError, type WorkspaceInfo } from "../../../lib/api-client";
-import { getToken, currentUser } from "../../../lib/auth";
+import { getToken, clearToken, currentUser } from "../../../lib/auth";
 import { useToast } from "../../../context/toast-context";
 
 export default function SettingsPage(): JSX.Element {
@@ -50,12 +50,28 @@ export default function SettingsPage(): JSX.Element {
             <span className="text-slate-500">Role</span>
             <span className="font-medium text-slate-800 capitalize">{user?.role ?? "—"}</span>
           </div>
+          <div className="flex justify-between items-center py-1.5 border-b border-slate-100">
+            <span className="text-slate-500">Sign-in method</span>
+            <span className="font-medium text-slate-800">
+              {user?.provider === "google" ? "Google (OAuth)" : "Email & password"}
+            </span>
+          </div>
           {workspace && (
             <div className="flex justify-between items-center py-1.5">
               <span className="text-slate-500">Workspace</span>
               <span className="font-medium text-slate-800">{workspace.display_name}</span>
             </div>
           )}
+        </div>
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={() => { clearToken(); router.replace("/login"); }}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-rose-600 border border-rose-200 bg-white rounded-xl hover:bg-rose-50 transition-colors"
+          >
+            <LogOut size={14} />
+            Sign out
+          </button>
         </div>
       </div>
 

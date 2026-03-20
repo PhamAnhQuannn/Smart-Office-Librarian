@@ -6,5 +6,6 @@ export interface AuthUser {
   role: UserRole;
   workspace_id: string;
   workspace_slug: string;
+  provider?: "google" | "password"; // sign-in method
   exp: number;           // expiry in epoch seconds
 }

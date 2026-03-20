@@ -124,7 +124,7 @@ export interface WorkspaceInfo {
 	slug: string;
 	display_name: string;
 	limits: { max_sources: number; max_chunks: number; monthly_query_cap: number };
-	usage: { sources: number; queries_this_month: number };
+	usage: { sources: number; queries_this_month: number; chunks: number };
 }
 
 export interface WorkspaceSource {

@@ -98,6 +98,7 @@ def login(
         secret=secret,
         workspace_id=workspace_id,
         workspace_slug=workspace_slug,
+        provider="password",
     )
     return TokenResponse(access_token=token)
 
@@ -137,6 +138,7 @@ def register(
         secret=secret,
         workspace_id=workspace.id,
         workspace_slug=workspace.slug,
+        provider="password",
     )
     return TokenResponse(access_token=token)
 
@@ -272,6 +274,7 @@ def google_auth_callback(
         secret=secret,
         workspace_id=workspace_id,
         workspace_slug=workspace_slug,
+        provider="google",
     )
 
     # Deliver JWT via URL fragment (fragments are never sent to servers, kept client-side only)

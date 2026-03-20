@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Github, RefreshCw, CheckCircle2, XCircle, Clock, AlertCircle, BookOpen, FileText } from "lucide-react";
+import { Github, RefreshCw, CheckCircle2, XCircle, Clock, AlertCircle, BookOpen, FileText, RotateCcw } from "lucide-react";
 import { getToken } from "../../../lib/auth";
 import { useRouter } from "next/navigation";
 import { buildApiUrl } from "../../../lib/api-client";
@@ -18,6 +18,8 @@ type Strategy = "incremental" | "full";
 interface IngestRun {
   id: string;
   namespace: string;
+  repo?: string;
+  branch?: string;
   status: "queued" | "running" | "completed" | "failed";
   created_at: string;
   completed_at: string | null;
@@ -89,6 +91,15 @@ export default function SyncPage(): JSX.Element {
   }, [token]);
 
   useEffect(() => { void fetchRuns(); }, [fetchRuns, refreshTrigger]);
+
+  function handleRetry(run: IngestRun): void {
+    if (run.repo) setRepoUrl(run.repo);
+    if (run.branch) { /* keep existing branch state */ }
+    setConnector("github");
+    setStrategy("incremental");
+    setStep(3);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   async function handleStart(): Promise<void> {
     if (!repoUrl.trim()) return;
@@ -289,6 +300,17 @@ export default function SyncPage(): JSX.Element {
                       <span className="text-xs text-slate-400">{run.chunks_created} chunks</span>
                     )}
                     <Badge variant={STATUS_VARIANT[run.status]}>{run.status}</Badge>
+                    {run.status === "failed" && (
+                      <button
+                        type="button"
+                        onClick={() => handleRetry(run)}
+                        className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-teal-600 bg-teal-50 hover:bg-teal-100 rounded-lg transition-colors"
+                        title="Retry this sync"
+                      >
+                        <RotateCcw size={11} />
+                        Retry
+                      </button>
+                    )}
                   </div>
                 </li>
               );

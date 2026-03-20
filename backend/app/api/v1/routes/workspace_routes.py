@@ -17,6 +17,7 @@ from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
 
 from app.api.v1.dependencies.settings import build_error_response, get_authenticated_user, get_ingest_jobs
+from app.db.repositories.chunks_repo import ChunksRepository
 from app.db.repositories.sources_repo import SourcesRepository
 from app.db.repositories.workspaces_repo import WorkspacesRepository
 from app.db.session import get_db_session
@@ -56,6 +57,7 @@ def get_workspace_me(
         return err
 
     source_count = SourcesRepository(db).count_by_workspace(user.workspace_id)
+    chunks_count = ChunksRepository(db).count_by_namespace(workspace.slug)
 
     # Read monthly query count from Redis (best-effort; falls back to 0)
     queries_this_month = 0
@@ -84,6 +86,7 @@ def get_workspace_me(
             "usage": {
                 "sources": source_count,
                 "queries_this_month": queries_this_month,
+                "chunks": chunks_count,
             },
         },
     )

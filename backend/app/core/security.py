@@ -330,6 +330,7 @@ def issue_jwt_token(
     secret: str,
     workspace_id: str = "",
     workspace_slug: str = "",
+    provider: str = "password",
     expires_in_seconds: int = 86400,
 ) -> str:
     """Issue a signed HS256 JWT for the given user.
@@ -345,6 +346,7 @@ def issue_jwt_token(
         "role": role,
         "workspace_id": workspace_id,
         "workspace_slug": workspace_slug,
+        "provider": provider,
         "exp": int(time.time()) + expires_in_seconds,
     }
     payload = _b64url_encode(

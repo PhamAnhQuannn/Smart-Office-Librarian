@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db.models import ChunkModel
@@ -47,3 +47,10 @@ class ChunksRepository(BaseRepository[ChunkModel]):
             self._session.delete(chunk)
         self._session.flush()
         return len(chunks)
+
+    def count_by_namespace(self, namespace: str) -> int:
+        """Return total number of chunks for a given Pinecone namespace (= workspace slug)."""
+        stmt = select(func.count()).select_from(ChunkModel).where(
+            ChunkModel.namespace == namespace
+        )
+        return self._session.scalar(stmt) or 0

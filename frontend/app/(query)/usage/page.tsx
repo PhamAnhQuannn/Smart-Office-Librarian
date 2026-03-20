@@ -13,6 +13,7 @@ function StatCard({
   unit,
   icon: Icon,
   warning,
+  subtitle,
 }: {
   label: string;
   value: number;
@@ -20,6 +21,7 @@ function StatCard({
   unit: string;
   icon: React.ElementType;
   warning?: boolean;
+  subtitle?: string;
 }): JSX.Element {
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
   const barColor = pct >= 90 ? "bg-rose-500" : pct >= 70 ? "bg-amber-400" : "bg-teal-500";
@@ -49,7 +51,7 @@ function StatCard({
             style={{ width: `${pct}%` }}
           />
         </div>
-        <p className="text-xs text-slate-400 mt-1">{pct}% used</p>
+        <p className="text-xs text-slate-400 mt-1">{subtitle ?? `${pct}% used`}</p>
       </div>
     </div>
   );
@@ -115,6 +117,7 @@ export default function UsagePage(): JSX.Element {
           unit="queries"
           icon={Zap}
           warning
+          subtitle={`${Math.max(0, workspace.limits.monthly_query_cap - (workspace.usage.queries_this_month ?? 0)).toLocaleString()} queries remaining this month`}
         />
         <StatCard
           label="Sources indexed"
@@ -126,7 +129,7 @@ export default function UsagePage(): JSX.Element {
         />
         <StatCard
           label="Chunks stored"
-          value={0}
+          value={workspace.usage.chunks ?? 0}
           max={workspace.limits.max_chunks}
           unit="chunks"
           icon={HardDrive}
