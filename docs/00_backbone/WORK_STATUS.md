@@ -1,11 +1,32 @@
-﻿ # WORK_STATUS.md
+﻿# WORK_STATUS.md
 
 ## 0) Header Metadata
 - Project: Smart Office Librarian (Embedlyzer)
 - Architecture Version: v1.5
-- Status: **Phase 14 complete — spec compliance pass, real data in all widgets, UI polish, provider JWT claim**
-- Last Updated: 2026-03-19 UTC (session 10)
+- Status: **Phase 15 complete — citation click-through + workspace rename + sources-aware Ask page**
+- Last Updated: 2026-03-20 UTC (session 11)
 - Owner: Engineering Team
+
+---
+
+## Session 11 Checkpoint — 2026-03-20 UTC
+
+### Phase 15 — UX polish: citation click-through + workspace rename
+
+**Commit**: `67ef9261`
+
+#### Changes
+
+| Area | File(s) | Change |
+|------|---------|--------|
+| **Citation click-through** | `frontend/components/query/StreamingAnswer.tsx` | `AnswerText` component splits answer text on `[N]` refs and renders them as teal circular badge buttons; clicking calls `handleCitationClick(n)`: auto-opens citations panel, scrolls `#citation-N` into view, flashes `ring-2 ring-teal-400` highlight for 1.5 s |
+| **Citation panel numbered badges** | `frontend/components/query/CitationPanel.tsx` | Each card gets `id="citation-N"` (1-indexed) anchor; teal numbered badge in top-left; `highlighted?: Set<number>` prop drives conditional `ring-2` flash class |
+| **Workspace rename** | `frontend/app/(query)/settings/page.tsx` | Workspace name row now has Pencil edit button; clicking enters inline edit mode (input + Check/X buttons); Enter key saves; `PATCH /workspace/me` called via `patchWorkspaceMe()`; success toast on save |
+| **PATCH /workspace/me route** | `backend/app/api/v1/routes/workspace_routes.py` | New endpoint — validates `display_name` ≤ 80 chars, calls `WorkspacesRepository.update_display_name()`, logs event |
+| **WorkspacesRepository** | `backend/app/db/repositories/workspaces_repo.py` | `update_display_name(workspace, display_name)` method using `flush()` |
+| **api-client** | `frontend/lib/api-client.ts` | `patchWorkspaceMe(token, {display_name})` PATCH helper added |
+
+#### All 8 Docker containers healthy on `35.175.156.119` post-deploy.
 
 ---
 
